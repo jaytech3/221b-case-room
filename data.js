@@ -33,6 +33,11 @@ window.CASE = {
   suspects: [
     {
       id: "percival",
+      questions: [
+        { q: "Why pawn your watch three days before the party?", a: "Because a gentleman's debts don't wait for a gentleman's convenience, sir. Attenborough's are discreet. I'd have redeemed it by Michaelmas." },
+        { q: "Did you leave the whist table at all?", a: "Not once. Hargreaves deals like a tortoise and I was eleven pounds down — a man doesn't walk away from that, he digs in." },
+        { q: "What did you do when the lights failed?", a: "Lit a cigar and kept playing. Pryce held the candle. You may ask all three of them, though I'd rather you didn't ask about the eleven pounds." },
+      ],
       name: "Lord Percival Ashcombe",
       short: "Percival",
       role: "Brother of the late Lord Ashcombe",
@@ -58,6 +63,11 @@ window.CASE = {
     },
     {
       id: "thorne",
+      questions: [
+        { q: "You handled the sapphire that evening?", a: "At eight o'clock, yes. Lady Ashcombe asked me to set it on its cushion — she trusts my eye for such things, if nothing else about me." },
+        { q: "Could anyone have left the ballroom unseen in the dark?", a: "The dark lasted four minutes, Inspector. The gallery is two floors up by the main stair. One would have needed wings, or the back stair — and the back stair runs from the service corridor, not the ballroom." },
+        { q: "Where were you at a quarter to eleven?", a: "Nine bars into a Chopin nocturne, with forty people pretending to listen. When the lamps failed I stopped mid-phrase. When they returned, I resumed. Several guests remarked on it." },
+      ],
       name: "Miss Evangeline Thorne",
       short: "Evangeline",
       role: "Lady Ashcombe's paid companion & pianist",
@@ -83,6 +93,11 @@ window.CASE = {
     },
     {
       id: "marlowe",
+      questions: [
+        { q: "Why did you need the housekeeper's key that afternoon?", a: "The insurers require me to confirm the case fittings in person. Ten minutes, with Mrs. Finch watching the clock. I returned it the moment I was done." },
+        { q: "Your valuation doubled the stone's worth. Why?", a: "The market for Ceylon sapphires has moved considerably since 1889. I stand by every figure I have ever put my name to." },
+        { q: "Was Jennings with you the entire time?", a: "Of course. We were discussing the varnish on the Turner — he has surprising opinions on varnish. He may have stepped out for a moment… I was absorbed in the painting, I confess." },
+      ],
       name: "Mr. Silas Marlowe",
       short: "Silas",
       role: "Jeweller & insurance appraiser for Lloyd's",
@@ -108,6 +123,11 @@ window.CASE = {
     },
     {
       id: "vance",
+      questions: [
+        { q: "How did mud come to be on your evening shoes?", a: "Mrs. Pemberton is not a small woman. I carried her through the conservatory doors onto the terrace and the quickest line crosses the flowerbed. I'd do it again." },
+        { q: "Did you go anywhere near the gallery windows?", a: "The gallery is two floors above the terrace, Inspector. Unless you suspect me of climbing ivy in patent leather with a dowager under one arm." },
+        { q: "Who can confirm your whereabouts in the dark?", a: "Mrs. Pemberton, once she came round, and her daughter, who never left her side. Also, I suspect, half the terrace — she was not quiet about her recovery." },
+      ],
       name: "Dr. Hugo Vance",
       short: "Hugo",
       role: "The family physician",
@@ -133,6 +153,11 @@ window.CASE = {
     },
     {
       id: "finch",
+      questions: [
+        { q: "You lent the only duplicate key to Mr. Marlowe?", a: "For ten minutes, with the insurers' letter in his hand and me counting every one of them. I have regretted it since the moment Lady Ashcombe screamed." },
+        { q: "Why send for Jennings at a quarter to eleven?", a: "Because Cook had let the ice run short and there were forty covers for supper. Jennings knows the cellar. He stayed to help until past eleven — I'd not have let him go sooner." },
+        { q: "Did you leave the kitchens at any point?", a: "Not for a breath. Mrs. Dalloway and both the girls will tell you so. Thirty years in this house, and you'd have me creeping about galleries in the dark?" },
+      ],
       name: "Mrs. Cordelia Finch",
       short: "Cordelia",
       role: "Housekeeper of Ravensworth House",
