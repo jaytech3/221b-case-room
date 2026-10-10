@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-theme="gaslight">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The 221B Case Room — The Ashcombe Sapphire</title>
+  <meta name="description" content="An interactive detective evidence board. Pin clues, pull red string to suspects, and name the thief of the Ashcombe Sapphire." />
+  <meta property="og:title" content="The 221B Case Room" />
+  <meta property="og:description" content="Five suspects. Five alibis. One sapphire. Pull the string and name the thief." />
+  <meta name="theme-color" content="#15100c" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23151008'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%232c62c9'/%3E%3Ccircle cx='27' cy='27' r='4' fill='%23dbe8ff'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=IM+Fell+English:ital@0;1&family=Special+Elite&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Paper grain / vignette overlays -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <header class="masthead" role="banner">
+    <a class="brand" href="#/board" aria-label="221B Case Room home">
+      <span class="brand__num">221<small>B</small></span>
+      <span class="brand__name">The Case Room</span>
+    </a>
+
+    <nav class="tabs" aria-label="Screens">
+      <a href="#/board" data-route="board" class="tab"><span class="tab__key">B</span>Case Board</a>
+      <a href="#/suspect" data-route="suspect" class="tab"><span class="tab__key">S</span>Suspects</a>
+      <a href="#/deduce" data-route="deduce" class="tab"><span class="tab__key">D</span>Deduction</a>
+    </nav>
+
+    <div class="masthead__right">
+      <div class="status-stamp" id="statusStamp" data-status="open" aria-live="polite">
+        <span class="status-stamp__label">Open</span>
+      </div>
+      <div class="menu">
+        <button class="icon-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Case menu">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="menu__panel" id="menuPanel" role="menu" hidden>
+          <button role="menuitem" data-action="notes">📓 Case notes &amp; timeline</button>
+          <button role="menuitem" data-action="brief">✉️ Re-read the telegram</button>
+          <hr />
+          <button role="menuitem" data-action="theme"><span id="themeLabel">☀️ Daylight theme</span></button>
+          <button role="menuitem" data-action="sound"><span id="soundLabel">🔔 Sound: off</span></button>
+          <button role="menuitem" data-action="tidy">🧷 Tidy the board</button>
+          <hr />
+          <button role="menuitem" data-action="reset" class="danger">🔥 Burn the file &amp; start over</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" class="view" tabindex="-1"></main>
+
+  <!-- Case notes drawer -->
+  <aside class="drawer" id="notesDrawer" aria-hidden="true" aria-label="Case notes">
+    <div class="drawer__inner">
+      <header class="drawer__head">
+        <h2>Case Notes</h2>
+        <button class="icon-btn" data-close-drawer aria-label="Close notes">✕</button>
+      </header>
+      <div class="drawer__body" id="notesBody"></div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <!-- Generic modal -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" hidden>
+    <div class="modal__card" id="modalCard"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="portraits.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

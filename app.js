@@ -73,7 +73,7 @@
     const el = $("#statusStamp"); el.dataset.status = st; $(".status-stamp__label", el).textContent = STATUS_LABEL[st];
     el.classList.remove("is-bump"); void el.offsetWidth; el.classList.add("is-bump");
     if (!silent) { snd.play("stamp"); toast(`Case status: ${STATUS_LABEL[st]}`); }
-    $$(".segmented button").forEach(b => b.classList.toggle("is-on", b.dataset.status === st));
+    $$(".segmented button").forEach(b => { const on = b.dataset.status === st; b.classList.toggle("is-on", on); b.setAttribute("aria-checked", on); });
   }
   const bumpProgress = () => { if (S.status === "open") setStatus("progress"); };
   const renderStatus = () => { const el = $("#statusStamp"); el.dataset.status = S.status; $(".status-stamp__label", el).textContent = STATUS_LABEL[S.status]; };
@@ -147,7 +147,7 @@
         </div>
         <div class="evidence-bag" aria-hidden="true">
           <div class="tag"><b>EVIDENCE</b>Item 1 · Display case<br>Long Gallery · 11:10 pm</div>
-          <div class="frame"><img src="assets/scenes/sapphire.jpg" alt="" onerror="this.remove()"><div class="gem">${GEM}</div></div>
+          <div class="frame"><div class="gem">${GEM}</div></div>
           <span class="stamp stamp--guilty">Missing</span>
         </div>
       </div>
@@ -156,7 +156,7 @@
         <a class="screen-card" href="#/suspect"><div class="k">02 · Suspect Profiles</div><h3>Alibis under the lamp.</h3><p>Statements, witnesses, movements, interrogation. Rate your suspicion and keep notes in your own hand.</p></a>
         <a class="screen-card" href="#/deduce"><div class="k">03 · Deduction</div><h3>Name the thief.</h3><p>Assemble the household at midnight. Press and hold to accuse. One alibi will not survive it.</p></a>
       </nav>
-      <p class="credits-line">Photographs are public-domain works from museum &amp; archive collections · <a href="assets/CREDITS.md">credits</a> · <a href="https://github.com/jaytech3/221b-case-room">source</a></p>`;
+      <p class="credits-line">Hand-built with HTML, CSS and vanilla JavaScript · <a href="https://github.com/jaytech3/221b-case-room">source</a></p>`;
     root.appendChild(sec);
     if (!S.introSeen) setTimeout(openTelegram, 600);
   }
@@ -237,11 +237,8 @@
       window.removeEventListener("resize", onResize); window.addEventListener("resize", onResize);
     }
     renderBoardState();
-    if (TEX.cork) scrollEl.classList.add("has-texture");
     if (!S.introSeen) setTimeout(openTelegram, 350);
   }
-  const TEX = { cork: false };
-  (() => { const i = new Image(); i.onload = () => { TEX.cork = true; scrollEl?.classList.add("has-texture"); }; i.src = "assets/textures/cork.jpg"; })();
 
   function onResize() {
     if (route.name !== "board") { window.removeEventListener("resize", onResize); return; }
@@ -255,7 +252,7 @@
     $(".board-sizer").style.setProperty("--board-w", BOARD_W + "px"); $(".board-sizer").style.setProperty("--board-h", BOARD_H + "px");
   }
 
-  function portrait(id) { return (PORTRAITS[suspect(id).portrait] || "") + `<img src="assets/portraits/${id}.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">`; }
+  function portrait(id) { return PORTRAITS[suspect(id).portrait] || ""; }
 
   function suspectCard(s) {
     const p = S.pos[s.id];
@@ -297,6 +294,8 @@
     pin.addEventListener("pointerdown", e => { e.stopPropagation(); e.preventDefault(); startString(c.id, e); });
     pin.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openExamine(c.id); } });
     $("[data-tie]", el).addEventListener("click", e => { e.stopPropagation(); openExamine(c.id); });
+    el.tabIndex = 0; el.setAttribute("aria-label", `Exhibit ${c.exhibit}: ${c.title}`);
+    el.addEventListener("keydown", e => { if (e.key === "Enter" && e.target === el) openExamine(c.id); });
     el.addEventListener("click", e => {
       if (e.target.closest(".pin") || e.target.closest("[data-tie]")) return;
       if (stringing) { cancelString(); return; }
@@ -625,7 +624,10 @@
         a.style.opacity = 1;
         $("[data-close]", a)?.focus();
         $$("[data-close]", a).forEach(b => b.addEventListener("click", () => { ov.remove(); if (route.name === "deduce") navigate(); }));
-        $("[data-share]", a)?.addEventListener("click", () => { navigator.clipboard?.writeText(summaryText()).then(() => toast("Case summary copied.")); });
+        $("[data-share]", a)?.addEventListener("click", () => {
+          const t = summaryText();
+          (navigator.clipboard?.writeText(t) || Promise.reject()).then(() => toast("Case summary copied."), () => { window.prompt("Copy your case summary:", t); });
+        });
         $("[data-reset]", a)?.addEventListener("click", () => { ov.remove(); confirmReset(); });
       }
     };
@@ -637,9 +639,9 @@
 
   /* ══ MODALS ═════════════════════════════════════════════ */
   function openModal(html, { onClose } = {}) {
-    const m = $("#modal"), card = $("#modalCard");
+    const m = $("#modal"), card = $("#modalCard"), opener = document.activeElement;
     card.innerHTML = `<button class="icon-btn modal__close" aria-label="Close">✕</button>` + html; m.hidden = false;
-    const close = () => { m.hidden = true; card.innerHTML = ""; document.removeEventListener("keydown", onKey); onClose?.(); };
+    const close = () => { m.hidden = true; card.innerHTML = ""; document.removeEventListener("keydown", onKey); onClose?.(); if (opener && document.contains(opener)) opener.focus?.(); };
     const onKey = e => { if (e.key === "Escape") close(); };
     document.addEventListener("keydown", onKey);
     $(".modal__close", card).addEventListener("click", close);
@@ -673,6 +675,18 @@
     </div>`);
     $$("#modalCard [data-s]").forEach(b => b.addEventListener("click", () => { close(); tie(cid, b.dataset.s); if (route.name !== "board") toast(`Exhibit ${c.exhibit} tied to ${suspect(b.dataset.s).short}.`); }));
     $("#modalCard [data-untie]")?.addEventListener("click", () => { close(); untie(cid); toast("String cut."); });
+  }
+  function openHelp() {
+    openModal(`<div class="confirm">
+      <span class="exhibit">Field manual</span>
+      <h2>How to work the case</h2>
+      <p><b>Tie a thread.</b> On the board, drag a clue's red pin onto a suspect — or click the pin, then the suspect. Click a clue card to read it in full and tie it from there (this is the way on phones). Click a string's scissors to cut it.</p>
+      <p><b>Read the room.</b> Each dossier holds the alibi, who vouches for it, the suspect's movements and an interrogation. The case notes (📓) hold the timeline — one line in it breaks one alibi.</p>
+      <p><b>Accuse.</b> In the Deduction room pick a suspect and press and hold for two seconds. A wrong name stamps them “Alibi holds” and the case stays open.</p>
+      <p style="font-family:var(--f-type);font-size:13px;line-height:2"><span class="kbd">B</span> board &nbsp; <span class="kbd">S</span> suspects &nbsp; <span class="kbd">D</span> deduction &nbsp; <span class="kbd">N</span> notes &nbsp; <span class="kbd">1</span>–<span class="kbd">5</span> dossier &nbsp; <span class="kbd">?</span> this manual &nbsp; <span class="kbd">Esc</span> close / cancel</p>
+      <div class="actions"><button class="btn btn--wax" data-ok autofocus>Back to work</button></div>
+    </div>`);
+    $("#modalCard [data-ok]").addEventListener("click", () => $("#modalCard .modal__close").click());
   }
   function confirmReset() {
     const close = openModal(`<div class="confirm">
@@ -710,6 +724,7 @@
     const a = e.target.closest("[data-action]")?.dataset.action; if (!a) return; setMenu(false);
     if (a === "notes") openNotes();
     if (a === "brief") openTelegram();
+    if (a === "help") openHelp();
     if (a === "theme") { S.theme = S.theme === "gaslight" ? "daylight" : "gaslight"; save(); applyTheme(); }
     if (a === "sound") { S.sound = !S.sound; save(); applySound(); if (S.sound) snd.play("snap"); }
     if (a === "tidy") { S.pos = defaultPositions(); save(); if (route.name === "board") navigate(); toast("Board tidied."); }
@@ -725,6 +740,7 @@
     if (k === "s") location.hash = "#/suspect";
     if (k === "d") location.hash = "#/deduce";
     if (k === "n") openNotes();
+    if (e.key === "?") openHelp();
     if (/^[1-5]$/.test(k)) location.hash = `#/suspect/${C.suspects[+k - 1].id}`;
   });
 
