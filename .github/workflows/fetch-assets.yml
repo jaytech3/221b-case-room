@@ -51,46 +51,59 @@ jobs:
                           date=g("DateTimeOriginal")[:40], desc=g("ImageDescription")[:140])
           def met_obj(oid):
               return json.loads(get(f"{MET}/objects/{oid}"))
+          AIC = "https://api.artic.edu/api/v1/artworks/search"
+          CMA = "https://openaccess-api.clevelandart.org/api/artworks/"
+          LOC = "https://www.loc.gov/photos/"
           mode, payload = os.environ["MODE"], json.loads(os.environ["PAYLOAD"])
+          def p(*a): print(*a, flush=True)
           if mode == "search":
               for q in payload:
-                  src, q = (q.split(":", 1) + [""])[:2] if ":" in q else ("met", q)
-                  print("\n=== " + src + ": " + q, flush=True)
+                  src, q = (q.split(":", 1) + [""])[:2] if ":" in q else ("aic", q)
+                  p("\n=== " + src + ": " + q)
                   try:
-                      if src == "met":
-                          r = json.loads(get(f"{MET}/search?" + urllib.parse.urlencode(dict(q=q, hasImages="true", departmentId=19))))
-                          for oid in (r.get("objectIDs") or [])[:14]:
-                              o = met_obj(oid)
-                              if not o.get("isPublicDomain") or not o.get("primaryImage"): continue
-                              print(f'met:{oid} | {o.get("title","")[:70]} | {o.get("artistDisplayName","")[:40]} | {o.get("objectDate","")} | {o.get("medium","")[:40]} | {o.get("primaryImageSmall","")}', flush=True)
+                      if src == "aic":
+                          u = AIC + "?" + urllib.parse.urlencode({"q": q, "query[term][is_public_domain]": "true", "fields": "id,title,artist_display,date_display,image_id,medium_display,classification_title", "limit": 16})
+                          for d in json.loads(get(u)).get("data", []):
+                              if not d.get("image_id"): continue
+                              p(f'aic | {d["title"][:70]} | {(d.get("artist_display") or "")[:50].replace(chr(10)," ")} | {d.get("date_display","")} | {(d.get("medium_display") or "")[:40]} | https://www.artic.edu/iiif/2/{d["image_id"]}/full/1686,/0/default.jpg | https://www.artic.edu/artworks/{d["id"]}')
+                      elif src == "cma":
+                          u = CMA + "?" + urllib.parse.urlencode({"q": q, "cc0": 1, "has_image": 1, "limit": 16})
+                          for d in json.loads(get(u)).get("data", []):
+                              im = (d.get("images") or {}).get("web") or {}
+                              if not im.get("url"): continue
+                              p(f'cma | {d["title"][:70]} | {", ".join(c.get("description","") for c in d.get("creators", []))[:50]} | {d.get("creation_date","")} | {(d.get("technique") or "")[:40]} | {im["url"]} | {d.get("url","")}')
+                      elif src == "loc":
+                          u = LOC + "?" + urllib.parse.urlencode({"q": q, "fo": "json", "c": 16})
+                          for d in json.loads(get(u)).get("results", []):
+                              ims = d.get("image_url") or []
+                              if not ims: continue
+                              p(f'loc | {d.get("title","")[:70]} | {", ".join(d.get("contributor") or [])[:40]} | {d.get("date","")} | {", ".join(d.get("original_format") or [])[:30]} | {ims[-1]} | {d.get("id","")} | rights: {(d.get("rights") or "")[:60] if isinstance(d.get("rights"), str) else ""}')
                       else:
-                          r = api(dict(action="query", generator="search", gsrsearch=q, gsrnamespace=6, gsrlimit=12,
-                                       prop="imageinfo", iiprop="url|size|extmetadata", iiurlwidth=640))
-                          for p in sorted(r.get("query", {}).get("pages", {}).values(), key=lambda p: p.get("index", 0)):
-                              m = meta(p)
-                              if not m["url"] or not re.search(r"\.(jpe?g|png|tiff?)$", m["url"], re.I): continue
-                              print(f'{m["title"]} | {m["w"]}x{m["h"]} | {m["license"]} | {m["artist"]} | {m["date"]} | {m["desc"]}', flush=True)
+                          raw = get(API + "?" + urllib.parse.urlencode(dict(action="query", generator="search", gsrsearch=q, gsrnamespace=6, gsrlimit=12, prop="imageinfo", iiprop="url|size|extmetadata", iiurlwidth=640, format="json")))
+                          r = json.loads(raw)
+                          if "query" not in r: p("RAW", raw[:300]); continue
+                          for pg in sorted(r["query"].get("pages", {}).values(), key=lambda x: x.get("index", 0)):
+                              m = meta(pg)
+                              if not m["url"]: continue
+                              p(f'commons | {m["title"]} | {m["w"]}x{m["h"]} | {m["license"]} | {m["artist"]} | {m["date"]} | {m["url"]}')
+                          time.sleep(2)
                   except Exception as e:
-                      print("ERR", repr(e)[:200], flush=True)
+                      p("ERR", repr(e)[:200])
           else:
               os.makedirs("assets", exist_ok=True)
-              credits = ["# Image credits\n\n", "All photographs are public-domain works, lightly cropped, resized and toned for the board.\n\n"]
+              credits = ["# Image credits\n\n", "All photographs are public-domain / CC0 works from open-access museum and library collections, lightly cropped, resized and toned for the board.\n\n"]
               for item in payload:
-                  if "met" in item:
-                      o = met_obj(item["met"]); src = o["primaryImage"]
-                      cred = f'[{o.get("title","")}](https://www.metmuseum.org/art/collection/search/{item["met"]}) · {o.get("artistDisplayName") or "unknown"} · {o.get("objectDate","")} · The Met, Open Access (CC0)'
-                  else:
-                      r = api(dict(action="query", titles=item["title"], prop="imageinfo", iiprop="url|size|extmetadata", iiurlwidth=item.get("src_w", 1800)))
-                      page = next(iter(r["query"]["pages"].values())); m = meta(page); src = m["thumb"] or m["url"]
-                      cred = f'[{m["title"][5:]}](https://commons.wikimedia.org/wiki/{urllib.parse.quote(m["title"].replace(" ", "_"))}) · {m["artist"] or "unknown"} · {m["date"]} · {m["license"]}'
-                  if not src: print("MISSING", item); continue
+                  src, cred = item["url"], item.get("credit", "")
                   tmp = "/tmp/src_" + re.sub(r"\W", "_", item["out"])
-                  open(tmp, "wb").write(get(src))
-                  out = os.path.join("assets", item["out"]); os.makedirs(os.path.dirname(out), exist_ok=True)
-                  w, h, grav = item.get("w", 900), item.get("h", 1125), item.get("gravity", "north")
-                  subprocess.run(["convert", tmp + "[0]", "-auto-orient", "-strip", "-resize", f"{w}x{h}^", "-gravity", grav, "-extent", f"{w}x{h}", "-quality", "82", out], check=True)
-                  print(f'OK {out} {os.path.getsize(out)//1024}KB <- {cred}', flush=True)
-                  credits.append(f'- `{item["out"]}` — {cred}\n')
+                  try:
+                      open(tmp, "wb").write(get(src))
+                      out = os.path.join("assets", item["out"]); os.makedirs(os.path.dirname(out), exist_ok=True)
+                      w, h, grav = item.get("w", 900), item.get("h", 1125), item.get("gravity", "north")
+                      subprocess.run(["convert", tmp + "[0]", "-auto-orient", "-strip", "-resize", f"{w}x{h}^", "-gravity", grav, "-extent", f"{w}x{h}", "-quality", "82", out], check=True)
+                      p(f'OK {out} {os.path.getsize(out)//1024}KB <- {cred}')
+                      credits.append(f'- `{item["out"]}` — {cred}\n')
+                  except Exception as e:
+                      p("FAIL", item["out"], repr(e)[:200])
               open("assets/CREDITS.md", "w").write("".join(credits))
           PY
           python3 /tmp/assets.py

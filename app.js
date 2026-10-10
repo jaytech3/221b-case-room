@@ -84,7 +84,7 @@
   function tie(cid, sid) {
     const was = S.ties[cid];
     if (was === sid) { untie(cid); return; }
-    S.ties[cid] = sid; save(); bumpProgress();
+    S.ties[cid] = sid; if (!S.startedAt) S.startedAt = Date.now(); save(); bumpProgress();
     const c = clue(cid), s = suspect(sid);
     if (sid === c.answer) { snd.play("snap"); toast(`Exhibit ${c.exhibit} tied to ${s.short}. The thread holds.`); }
     else { snd.play("pin"); toast(`Exhibit ${c.exhibit} tied to ${s.short}… but the knot feels loose. Re-read the clue.`, 3400); }
@@ -100,18 +100,66 @@
     const [name, arg] = h.split("/");
     if (name === "suspect") return { name: "suspect", id: arg && suspect(arg) ? arg : C.suspects[0].id };
     if (name === "deduce") return { name: "deduce", pick: arg };
-    return { name: "board" };
+    if (name === "board") return { name: "board" };
+    return { name: "home" };
   }
   function navigate() {
     route = parse();
     $$(".tab").forEach(t => t.classList.toggle("is-active", t.dataset.route === route.name));
     const v = $("#view"); v.innerHTML = "";
-    if (route.name === "board") renderBoard(v);
+    document.body.classList.toggle("is-home", route.name === "home");
+    if (route.name === "home") renderLanding(v);
+    else if (route.name === "board") renderBoard(v);
     else if (route.name === "suspect") renderSuspect(v, route.id);
     else renderDeduce(v, route.pick);
     window.scrollTo({ top: 0 });
   }
   window.addEventListener("hashchange", navigate);
+
+  /* ══ LANDING ════════════════════════════════════════════ */
+  const GEM = `<svg viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9cc1ff"/><stop offset=".5" stop-color="#2f6fd6"/><stop offset="1" stop-color="#0b1f52"/></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dbe8ff"/><stop offset="1" stop-color="#4f86e8"/></linearGradient></defs>
+    <polygon points="100,12 150,42 180,100 150,160 100,188 50,160 20,100 50,42" fill="url(#g1)"/>
+    <polygon points="100,12 150,42 100,70 50,42" fill="url(#g2)" opacity=".9"/>
+    <polygon points="150,42 180,100 100,70" fill="#6fa0ff" opacity=".55"/><polygon points="20,100 50,42 100,70" fill="#1d4fb8" opacity=".7"/>
+    <polygon points="100,70 180,100 150,160 100,188 50,160 20,100" fill="#2b63cc" opacity=".55"/>
+    <polygon points="100,70 150,160 100,188 50,160" fill="#163f9e" opacity=".5"/>
+    <path d="M62 50 q38 -22 76 0" stroke="#fff" stroke-width="3" fill="none" opacity=".7" stroke-linecap="round"/></svg>`;
+  function renderLanding(root) {
+    const started = Object.keys(S.ties).length || Object.keys(S.notes).length || S.attempts;
+    const sec = document.createElement("section"); sec.className = "landing";
+    sec.innerHTML = `
+      <div class="landing__bg" aria-hidden="true"></div>
+      <div class="landing__inner">
+        <div>
+          <div class="eyebrow">Case file ${esc(C.number)} · ${esc(C.date)}</div>
+          <h1>The <em>Ashcombe</em><br>Sapphire</h1>
+          <p class="lede">${esc(C.brief)}</p>
+          <div class="cta">
+            <a class="btn btn--wax" href="#/board">${started ? "Return to the board" : "Open the case file"}</a>
+            <a class="btn btn--outline-light" href="#/suspect">Meet the suspects</a>
+            ${S.solved ? `<span class="resume">Case closed — ${S.attempts} accusation${S.attempts > 1 ? "s" : ""}.</span>` : started ? `<span class="resume">${Object.keys(S.ties).length} of ${C.clues.length} threads tied — resume where you left off.</span>` : ""}
+          </div>
+          <div class="landing__facts">
+            <div class="fact"><b>5</b><span>Suspects</span></div>
+            <div class="fact"><b>4<small style="font-size:.5em"> min</small></b><span>of darkness</span></div>
+            <div class="fact"><b>48<small style="font-size:.5em"> ct</small></b><span>Sapphire, missing</span></div>
+          </div>
+        </div>
+        <div class="evidence-bag" aria-hidden="true">
+          <div class="tag"><b>EVIDENCE</b>Item 1 · Display case<br>Long Gallery · 11:10 pm</div>
+          <div class="frame"><img src="assets/scenes/sapphire.jpg" alt="" onerror="this.remove()"><div class="gem">${GEM}</div></div>
+          <span class="stamp stamp--guilty">Missing</span>
+        </div>
+      </div>
+      <nav class="landing__screens" aria-label="Screens">
+        <a class="screen-card" href="#/board"><div class="k">01 · Case Board</div><h3>Pin. String. Connect.</h3><p>Every clue and every suspect on one cork board. Pull red string from evidence to the person it implicates.</p></a>
+        <a class="screen-card" href="#/suspect"><div class="k">02 · Suspect Profiles</div><h3>Alibis under the lamp.</h3><p>Statements, witnesses, movements, interrogation. Rate your suspicion and keep notes in your own hand.</p></a>
+        <a class="screen-card" href="#/deduce"><div class="k">03 · Deduction</div><h3>Name the thief.</h3><p>Assemble the household at midnight. Press and hold to accuse. One alibi will not survive it.</p></a>
+      </nav>
+      <p class="credits-line">Photographs are public-domain works from museum &amp; archive collections · <a href="assets/CREDITS.md">credits</a> · <a href="https://github.com/jaytech3/221b-case-room">source</a></p>`;
+    root.appendChild(sec);
+    if (!S.introSeen) setTimeout(openTelegram, 600);
+  }
 
   /* ══ BOARD ══════════════════════════════════════════════ */
   let boardEl, stringsEl, scrollEl, scale = 1, stringing = null;
@@ -186,11 +234,14 @@
       C.suspects.forEach(s => boardEl.appendChild(suspectCard(s)));
       C.clues.forEach(c => boardEl.appendChild(clueCard(c)));
       fitBoard();
-      window.addEventListener("resize", onResize);
+      window.removeEventListener("resize", onResize); window.addEventListener("resize", onResize);
     }
     renderBoardState();
+    if (TEX.cork) scrollEl.classList.add("has-texture");
     if (!S.introSeen) setTimeout(openTelegram, 350);
   }
+  const TEX = { cork: false };
+  (() => { const i = new Image(); i.onload = () => { TEX.cork = true; scrollEl?.classList.add("has-texture"); }; i.src = "assets/textures/cork.jpg"; })();
 
   function onResize() {
     if (route.name !== "board") { window.removeEventListener("resize", onResize); return; }
@@ -204,7 +255,7 @@
     $(".board-sizer").style.setProperty("--board-w", BOARD_W + "px"); $(".board-sizer").style.setProperty("--board-h", BOARD_H + "px");
   }
 
-  function portrait(id) { return PORTRAITS[suspect(id).portrait] || ""; }
+  function portrait(id) { return (PORTRAITS[suspect(id).portrait] || "") + `<img src="assets/portraits/${id}.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">`; }
 
   function suspectCard(s) {
     const p = S.pos[s.id];
@@ -272,6 +323,8 @@
       $("[data-tie]", el).textContent = sid ? "Change" : "Tie to…";
     });
     const n = Object.keys(S.ties).length, ok = correctTies();
+    const coach = $(`.card--clue .pin`); $$(".pin.is-coach").forEach(p => p.classList.remove("is-coach"));
+    if (coach && n === 0 && S.introSeen && !S.solved) coach.classList.add("is-coach");
     const fill = $("#progFill"); if (fill) fill.style.width = (ok / C.clues.length * 100) + "%";
     const pt = $("#progText"); if (pt) pt.textContent = `${n} of ${C.clues.length} clues tied`;
     const ph = $("#progHint"); if (ph) ph.textContent = ok === C.clues.length ? "Threads hold ✓" : n > ok ? `${n - ok} loose knot${n - ok > 1 ? "s" : ""}` : "";
@@ -440,6 +493,10 @@
           ${tied.length === 0 ? `<p class="empty" style="margin-top:10px">You have not yet tied any thread to ${esc(s.short)} on the board.</p>` : ""}
         </section>
         <section>
+          <h3>Interrogation</h3>
+          <div class="qa">${(s.questions || []).map(x => `<details><summary>${esc(x.q)}</summary><div class="a">“${esc(x.a)}”</div></details>`).join("")}</div>
+        </section>
+        <section>
           <h3>Movements that night</h3>
           <ul class="movements">${s.movements.map(([t, x]) => `<li class="${/10:4|10:5/.test(t) ? "is-key" : ""}"><span class="t">${esc(t)}</span><span>${esc(x)}</span></li>`).join("")}</ul>
         </section>
@@ -454,6 +511,7 @@
     let nt; $("#notes", sec).addEventListener("input", e => { S.notes[s.id] = e.target.value; clearTimeout(nt); nt = setTimeout(() => { save(); if (e.target.value.trim()) bumpProgress(); }, 300); });
     $("[data-action=notes]", sec).addEventListener("click", openNotes);
     $$(".evidence button", sec).forEach(b => b.addEventListener("click", () => openExamine(b.dataset.ex)));
+    $$(".qa details", sec).forEach(d => d.addEventListener("toggle", () => { if (d.open) { snd.play("tick"); bumpProgress(); } }));
   }
   function evidenceRow(c, s, canonical) {
     const sid = S.ties[c.id];
@@ -551,6 +609,7 @@
       <h2 id="revealTitle">${win ? `${esc(s.name)} is the thief.` : `${esc(s.short)} is not your thief.`}</h2>
       <span class="stamp stamp--big ${win ? "stamp--closed" : "stamp--cleared"}">${win ? "Case Closed" : "Alibi Holds"}</span>
       <p class="reveal__text" id="revealText"><span class="caret"></span></p>
+      ${win ? `<div class="stats"><div><b>${correctTies()}/${C.clues.length}</b><span>threads true</span></div><div><b>${S.attempts}</b><span>accusation${S.attempts > 1 ? "s" : ""}</span></div><div><b>${elapsed()}</b><span>on the case</span></div></div>` : ""}
       <div class="reveal__actions" id="revealActions" style="opacity:0;transition:opacity .4s"></div>
     </div>`;
     document.body.appendChild(ov);
@@ -573,6 +632,7 @@
     setTimeout(type, 700);
     ov.addEventListener("click", e => { if (e.target === ov && k >= words.length) { ov.remove(); navigate(); } });
   }
+  const elapsed = () => { if (!S.startedAt) return "—"; const m = Math.max(1, Math.round((Date.now() - S.startedAt) / 60000)); return m < 60 ? m + "m" : Math.floor(m / 60) + "h " + (m % 60) + "m"; };
   const summaryText = () => `THE 221B CASE ROOM — ${C.title}\nStatus: ${STATUS_LABEL[S.status]} · Accusations: ${S.attempts}\nThreads: ${C.clues.map(c => `Ex.${c.exhibit} → ${S.ties[c.id] ? suspect(S.ties[c.id]).short : "untied"}`).join(", ")}\nCulprit: ${S.solved ? suspect(S.accused).name : "unknown"}\n${location.href.split("#")[0]}`;
 
   /* ══ MODALS ═════════════════════════════════════════════ */
@@ -588,6 +648,7 @@
     return close;
   }
   function openTelegram() {
+    if (!S.startedAt) { S.startedAt = Date.now(); save(); }
     const close = openModal(`<div class="telegram">
       <div class="telegram__head"><b>Post Office Telegraphs</b><span>Baker St. W. · 11.42 pm</span></div>
       <h2>Urgent. Come at once.</h2>
@@ -669,6 +730,6 @@
 
   /* boot */
   applyTheme(); applySound(); renderStatus();
-  if (!location.hash) location.hash = "#/board";
+  if (!location.hash) location.hash = "#/";
   navigate();
 })();
