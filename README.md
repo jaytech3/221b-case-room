@@ -5,6 +5,13 @@
 An interactive Victorian detective evidence board. A sapphire vanished from a locked case during a
 four-minute blackout at a midsummer masquerade. Five suspects, five alibis, five clues — and one liar.
 
+## What's inside
+
+- **Landing** — the case in one breath, with the missing stone under glass.
+- **Case Board, Suspect Profiles, Deduction** — the three screens the brief asked for, detailed below.
+- **Interrogation** — three questions per suspect; the answers hide the contradictions a careful reader will catch.
+- **Real photographs** — public-domain / CC0 portraits and scenes from open-access museum and library collections, fetched by a GitHub Action and credited in `assets/CREDITS.md`. Hand-drawn SVG cameos remain underneath as a fallback.
+
 ## The three screens
 
 | Screen | What the detective does |
@@ -18,9 +25,14 @@ four-minute blackout at a midsummer masquerade. Five suspects, five alibis, five
 - The puzzle is genuinely solvable: the case notes and timeline contain the one fact that breaks a single alibi.
 - Loose knots: a string tied to the wrong suspect turns amber and dashed; the right one snaps taut and red.
 - Everything persists in `localStorage` — board layout, strings, notes, suspicion, verdicts.
+- Press-and-hold accusation: two full seconds with a filling ring, no accidental verdicts.
 - Keyboard: `B` board · `S` suspects · `D` deduction · `N` notes · `1–5` jump to a suspect · `Esc` cancel.
 - Gaslight (dark) and daylight themes, optional foley sound, reduced-motion support, responsive down to phones (list mode).
 - No build step, no framework, no dependencies: `index.html` + `styles.css` + `app.js` + `data.js` + `portraits.js`.
+
+## Fetching the photographs
+
+`.github/workflows/fetch-assets.yml` is a manual workflow with two modes. `search` queries the Art Institute of Chicago, Cleveland Museum of Art, Library of Congress and Wikimedia Commons APIs and prints candidates; `fetch` downloads a chosen list, crops and resizes with ImageMagick, writes `assets/CREDITS.md` and commits the result.
 
 ## Run locally
 
