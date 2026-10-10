@@ -1,6 +1,7 @@
 # The 221B Case Room
 
 **Live:** https://jaytech3.github.io/221b-case-room/
+**Visitor's guide (PDF):** https://jaytech3.github.io/221b-case-room/docs/The-221B-Case-Room-Guide.pdf — a 12-page illustrated walkthrough of every screen, the cast, shortcuts, and a sealed solution page at the end.
 
 An interactive Victorian detective evidence board. A sapphire vanished from a locked case during a
 four-minute blackout at a midsummer masquerade. Five suspects, five alibis, five clues — and one liar.
