@@ -33,12 +33,12 @@ jobs:
           UA = {"User-Agent": "221b-case-room-asset-fetcher/1.0 (https://github.com/jaytech3/221b-case-room; contact via GitHub issues)"}
           API = "https://commons.wikimedia.org/w/api.php"
           MET = "https://collectionapi.metmuseum.org/public/collection/v1"
-          def get(url, tries=5):
+          def get(url, tries=2):
               for i in range(tries):
                   try:
-                      return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=90).read()
+                      return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=25).read()
                   except urllib.error.HTTPError as e:
-                      if e.code in (429, 503) and i < tries - 1: time.sleep(4 * (i + 1)); continue
+                      if e.code in (429, 503) and i < tries - 1: time.sleep(3); continue
                       raise
           def api(params):
               params.update(format="json"); time.sleep(1.2)
