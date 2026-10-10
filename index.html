@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>221B Case Room</title>
+<meta name="description" content="A digital detective board. Pin clues to suspects, track the case and name the thief of the Blue Duchess sapphire.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4 52 22 32 60 12 22Z' fill='%232f5fd0' stroke='%23c9a227' stroke-width='4'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="#/board" aria-label="221B Case Room home">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 52 22 32 60 12 22Z" fill="#2f5fd0" stroke="#c9a227" stroke-width="3"/><path d="M12 22h40M24 22l8-18 8 18-8 38" fill="none" stroke="#c9a227" stroke-width="2" opacity=".7"/></svg>
+    <span><b>221B</b> Case Room</span>
+  </a>
+  <nav class="tabs" aria-label="Screens">
+    <a href="#/board" data-tab="board">Case Board</a>
+    <a href="#/suspect/hayes" data-tab="suspect">Suspects</a>
+    <a href="#/deduce" data-tab="deduce">Deduction</a>
+  </nav>
+  <div class="status-wrap">
+    <span class="status" id="statusPill" aria-live="polite">Open</span>
+  </div>
+</header>
+
+<main id="main" tabindex="-1"></main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
