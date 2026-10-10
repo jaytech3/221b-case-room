@@ -2,36 +2,59 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>221B Case Room</title>
-<meta name="description" content="A digital detective board. Pin clues to suspects, track the case and name the thief of the Blue Duchess sapphire.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4 52 22 32 60 12 22Z' fill='%232f5fd0' stroke='%23c9a227' stroke-width='4'/></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>221B Case Room · The Blue Duchess</title>
+<meta name="description" content="A detective board for the theft of the Blue Duchess sapphire. Examine evidence, interrogate five suspects, pin clues with red string and name the thief.">
+<meta name="theme-color" content="#120e0b">
+<meta property="og:title" content="221B Case Room · The Blue Duchess">
+<meta property="og:description" content="Five suspects. Five alibis. One sapphire. Pull the string and name the thief.">
+<meta property="og:image" content="img/fog.webp">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4 52 22 32 60 12 22Z' fill='%233a6ee8' stroke='%23d4b04c' stroke-width='4'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,500;1,600&family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="topbar">
-  <a class="brand" href="#/board" aria-label="221B Case Room home">
-    <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 52 22 32 60 12 22Z" fill="#2f5fd0" stroke="#c9a227" stroke-width="3"/><path d="M12 22h40M24 22l8-18 8 18-8 38" fill="none" stroke="#c9a227" stroke-width="2" opacity=".7"/></svg>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar" id="topbar">
+  <a class="brand" href="#/board" aria-label="221B Case Room, case board">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 52 22 32 60 12 22Z" fill="#3a6ee8" stroke="#d4b04c" stroke-width="3"/><path d="M12 22h40M24 22l8-18 8 18-8 38" fill="none" stroke="#e8d9a8" stroke-width="1.6" opacity=".6"/></svg>
     <span><b>221B</b> Case Room</span>
   </a>
   <nav class="tabs" aria-label="Screens">
-    <a href="#/board" data-tab="board">Case Board</a>
-    <a href="#/suspect/hayes" data-tab="suspect">Suspects</a>
-    <a href="#/deduce" data-tab="deduce">Deduction</a>
+    <a href="#/board" data-tab="board"><kbd>1</kbd>Case Board</a>
+    <a href="#/suspect/hayes" data-tab="suspect"><kbd>2</kbd>Suspects</a>
+    <a href="#/deduce" data-tab="deduce"><kbd>3</kbd>Deduction</a>
   </nav>
-  <div class="status-wrap">
-    <span class="status" id="statusPill" aria-live="polite">Open</span>
+  <div class="top-actions">
+    <button class="icon-btn" id="notebookBtn" aria-label="Open notebook" title="Notebook (N)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6zM6 3v18M10 8h6M10 12h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="badge" id="noteBadge" hidden>0</span>
+    </button>
+    <span class="status" id="statusPill" data-s="open" aria-live="polite">Open</span>
   </div>
 </header>
 
 <main id="main" tabindex="-1"></main>
 
+<footer class="foot">
+  <span>Case 221B / 1887 · The Blue Duchess</span>
+  <span class="foot-links">
+    <button class="linkish" data-open="help">How to play</button>
+    <button class="linkish" data-open="credits">Image credits</button>
+    <button class="linkish" data-open="brief">Re-read the brief</button>
+  </span>
+</footer>
+
+<aside class="drawer" id="drawer" aria-label="Detective's notebook" aria-hidden="true" inert></aside>
+<div class="scrim" id="scrim" hidden></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden><div class="modal-card" id="modalCard"></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="data.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

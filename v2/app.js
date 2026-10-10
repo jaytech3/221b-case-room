@@ -1,446 +1,611 @@
-/* 221B Case Room: a digital detective board */
+/* 221B Case Room · v2 */
 (() => {
 "use strict";
-
-/* ---------------- case data ---------------- */
-const SUSPECTS = [
-  { id:"hayes", name:"Col. Reginald Hayes", short:"Hayes", role:"Retired army officer", age:61, relation:"Old friend of the host",
-    alibi:"I was in the billiard room from nine until the alarm. Ask Barnaby the butler, he racked every frame for me.",
-    alibiCheck:"Confirmed by the butler and two other guests.",
-    motive:"Heavy gambling debts at his club.",
-    rebuttal:"The Colonel's alibi is solid. The butler and two guests place him at the billiard table the whole time. Cigar ash only proves he smoked by the study window earlier in the evening.",
-    look:{skin:"#e2b48f",hair:"#d9d4cc",style:"short",hat:"none",coat:"#4a3a2a",extra:["mustache","monocle"]} },
-  { id:"marsh", name:"Miss Evelyn Marsh", short:"Marsh", role:"Governess to the household", age:29, relation:"Employed by the host",
-    alibi:"I was reading alone in the library. I heard nothing until the commotion.",
-    alibiCheck:"No witnesses. The library connects to the study only through the main hall.",
-    motive:"Recently given notice of dismissal.",
-    rebuttal:"Miss Marsh had no witness, but the gemstone book only shows curiosity. The hall footman would have seen her cross to the study, and he saw no one between nine and half past.",
-    look:{skin:"#f0cbab",hair:"#6b3a1f",style:"bun",hat:"none",coat:"#2e3f56",extra:["glasses"]} },
-  { id:"lang", name:"Mr. Victor Lang", short:"Lang", role:"Jeweller, Hatton Garden", age:47, relation:"Valued the sapphire last spring",
-    alibi:"I left the party at a quarter to nine. My cab driver took me straight home to Hampstead.",
-    alibiCheck:"Cab driver and the Hampstead night porter confirm the 8:45 departure.",
-    motive:"A rival offered him a fortune for the stone.",
-    rebuttal:"Mr. Lang was in a cab to Hampstead before the sapphire was last seen at 9:00. The loupe was dropped during his valuation visit the week before.",
-    look:{skin:"#d9a27c",hair:"#2a221c",style:"slick",hat:"bowler",coat:"#22262c",extra:["beard"]} },
-  { id:"pell", name:"Dr. Arthur Pell", short:"Pell", role:"Family physician", age:54, relation:"Guest of the host",
-    alibi:"At ten past nine a guest fainted in the conservatory. I tended her until the alarm was raised.",
-    alibiCheck:"The fainted guest and her husband confirm he never left her side.",
-    motive:"His practice is near bankrupt.",
-    rebuttal:"Dr. Pell was kneeling beside a fainted guest from 9:10 with two witnesses. The conservatory mud came from the gardener's boots, tracked in that afternoon.",
-    look:{skin:"#c98d68",hair:"#8a8580",style:"bald",hat:"none",coat:"#3b3b3b",extra:["glasses","stethoscope"]} },
-  { id:"julian", name:"Julian Ashworth", short:"Julian", role:"The host's nephew", age:26, relation:"Heir to the Ashworth estate",
-    alibi:"I was playing the piano in the drawing room all evening. Everyone heard me.",
-    alibiCheck:"Guests heard music from the drawing room. Nobody actually saw him at the keys.",
-    motive:"Disinherited in a new will, to be signed on Monday.",
-    rebuttal:"",
-    look:{skin:"#f2c9a6",hair:"#c08a3e",style:"wave",hat:"top",coat:"#5a1e22",extra:["cravat"]} },
-];
-
-const CLUES = [
-  { id:"ash", no:"01", title:"Havana cigar ash", text:"Fresh ash on the study windowsill. Only one guest smokes Havanas.", where:"Study window", truth:"hayes" },
-  { id:"book", no:"02", title:"A borrowed book", text:"'A Treatise on Precious Stones' left open on the study desk. Library stamp inside.", where:"Study desk", truth:"marsh" },
-  { id:"loupe", no:"03", title:"Jeweller's loupe", text:"A brass 10x loupe under the desk, engraved with the initials V.L.", where:"Under the desk", truth:"lang" },
-  { id:"mud", no:"04", title:"Conservatory mud", text:"Damp red soil on the study carpet. It matches the conservatory beds.", where:"Study carpet", truth:"pell" },
-  { id:"roll", no:"05", title:"Pianola roll receipt", text:"A receipt for a 30-minute player-piano roll, bought this morning, found in a coat pocket.", where:"Cloakroom", truth:"julian" },
-];
-
-const CULPRIT = "julian", KEY_CLUE = "roll";
-
-const TIMELINE = [
-  { t:"8:30 pm", d:"Lady Ashworth shows the Blue Duchess sapphire to her guests." },
-  { t:"8:45 pm", d:"Mr. Lang leaves by cab." },
-  { t:"9:00 pm", d:"Butler sees the sapphire in the study safe, door locked.", key:true },
-  { t:"9:00 pm", d:"Piano music begins in the drawing room." },
-  { t:"9:10 pm", d:"A guest faints in the conservatory." },
-  { t:"9:30 pm", d:"Music stops. Safe found open, sapphire gone.", key:true },
-];
-
-/* ---------------- portraits ---------------- */
-function portrait(s){
-  const L = s.look, id = "p" + s.id;
-  const hair = {
-    short:`<path d="M33 38c0-12 8-19 17-19s17 7 17 19c-3-6-9-9-17-9s-14 3-17 9z" fill="${L.hair}"/>`,
-    bun:`<circle cx="50" cy="18" r="8" fill="${L.hair}"/><path d="M32 42c-1-14 8-22 18-22s19 8 18 22c-3-9-10-13-18-13s-15 4-18 13z" fill="${L.hair}"/>`,
-    slick:`<path d="M33 37c0-11 8-17 17-17s17 6 17 17c-6-7-28-7-34 0z" fill="${L.hair}"/>`,
-    bald:`<path d="M33 40c0-3 1-5 2-6v8zM67 40c0-3-1-5-2-6v8z" fill="${L.hair}"/>`,
-    wave:`<path d="M32 40c-2-14 7-21 18-21 12 0 20 7 18 21-2-5-6-9-11-9-3 3-8 4-12 3-6 0-11 2-13 6z" fill="${L.hair}"/>`,
-  }[L.style];
-  const hat = {
-    none:"",
-    top:`<rect x="36" y="4" width="28" height="22" rx="2" fill="#151515"/><rect x="36" y="20" width="28" height="4" fill="#5a1e22"/><ellipse cx="50" cy="26" rx="22" ry="4" fill="#111"/>`,
-    bowler:`<path d="M35 26c0-11 7-16 15-16s15 5 15 16z" fill="#1b1b1b"/><ellipse cx="50" cy="26" rx="21" ry="3.6" fill="#111"/>`,
-  }[L.hat];
-  const ex = L.extra.map(e => ({
-    mustache:`<path d="M41 54c3-3 6-3 9-1 3-2 6-2 9 1-3 2-6 2-9 0-3 2-6 2-9 0z" fill="${L.hair}"/>`,
-    monocle:`<circle cx="57" cy="42" r="5" fill="rgba(255,255,255,.25)" stroke="#c9a227" stroke-width="1.4"/><path d="M62 44q4 10 2 22" stroke="#c9a227" stroke-width=".8" fill="none"/>`,
-    glasses:`<g fill="rgba(255,255,255,.18)" stroke="#2b2b2b" stroke-width="1.3"><circle cx="43" cy="43" r="4.5"/><circle cx="57" cy="43" r="4.5"/></g><path d="M47.5 43h5" stroke="#2b2b2b" stroke-width="1.3"/>`,
-    beard:`<path d="M35 46c1 14 7 20 15 20s14-6 15-20c-2 5-6 7-8 7-2-2-5-3-7-3s-5 1-7 3c-2 0-6-2-8-7z" fill="${L.hair}"/>`,
-    stethoscope:`<path d="M40 70c0 10 4 16 10 16s10-6 10-16" stroke="#9aa3ad" stroke-width="2" fill="none"/><circle cx="50" cy="87" r="3" fill="#9aa3ad"/>`,
-    cravat:`<path d="M44 68l6 8 6-8-6 3z" fill="#f1e6cf"/><circle cx="50" cy="75" r="1.6" fill="#c9a227"/>`,
-  }[e])).join("");
-  return `<svg viewBox="0 0 100 100" role="img" aria-label="Portrait of ${s.name}">
-  <defs><radialGradient id="${id}" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="#e9dcc0"/><stop offset="1" stop-color="#a8987a"/></radialGradient></defs>
-  <rect width="100" height="100" fill="url(#${id})"/>
-  <path d="M14 100c2-20 16-31 36-31s34 11 36 31z" fill="${L.coat}"/>
-  <path d="M43 64h14v8l-7 5-7-5z" fill="${L.skin}"/>
-  <path d="M42 70l8 10 8-10" fill="none" stroke="#f1e6cf" stroke-width="2.5"/>
-  <ellipse cx="50" cy="44" rx="16" ry="19" fill="${L.skin}"/>
-  <ellipse cx="34" cy="46" rx="2.5" ry="4" fill="${L.skin}"/><ellipse cx="66" cy="46" rx="2.5" ry="4" fill="${L.skin}"/>
-  <circle cx="43.5" cy="43" r="1.6" fill="#2a1d14"/><circle cx="56.5" cy="43" r="1.6" fill="#2a1d14"/>
-  <path d="M40 38.5q3.5-2 7 0M53 38.5q3.5-2 7 0" stroke="${L.hair === "#d9d4cc" ? "#9c968d" : L.hair}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <path d="M50 45v6l-2 1" stroke="rgba(0,0,0,.25)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M45 57q5 2.5 10 0" stroke="#8a4f3c" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  ${hair}${ex}${hat}
-  <rect width="100" height="100" fill="#704214" opacity=".12"/>
-  </svg>`;
-}
-const gemSVG = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa2ff"/><stop offset="1" stop-color="#1a3a9c"/></linearGradient></defs><path d="M32 4 54 22 32 60 10 22Z" fill="url(#gm)" stroke="#c9a227" stroke-width="2"/><path d="M10 22h44M22 22l10-18 10 18-10 38" fill="none" stroke="#dbe5ff" stroke-width="1.2" opacity=".6"/></svg>`;
+const C = window.CASE;
+const S_BY = Object.fromEntries(C.suspects.map(s => [s.id, s]));
+const C_BY = Object.fromEntries(C.clues.map(c => [c.id, c]));
+const R_BY = Object.fromEntries(C.rooms.map(r => [r.id, r]));
+const FACT_TOTAL = Object.keys(C.facts).length;
+const img = n => `img/${n}.webp`;
+const face = id => img(id + "-face");
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ICON = {
+  eye:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>`,
+  lens:`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 15 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  hand:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5v-6a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V13m0-3.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-4.6-2.2L4.2 15a1.6 1.6 0 0 1 2.4-2l1.4 1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+};
 
 /* ---------------- state ---------------- */
-const KEY = "221b-case-room-v1";
-const fresh = () => ({ links:{}, notes:{}, attempts:0, solved:false, accused:null, startedAt:Date.now(), solvedAt:null });
-let state;
-try { state = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch { state = fresh(); }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+const KEY = "221b-v2";
+const fresh = () => ({ seenIntro:false, links:{}, examined:[], asked:{}, facts:[], log:[], notes:{}, hints:0, attempts:0,
+  solved:false, startedAt:Date.now(), solvedAt:null, pick:{ s:null, m:null, c:null }, step:0, unread:0 });
+let st;
+try { st = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch { st = fresh(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
 
-const sById = id => SUSPECTS.find(s => s.id === id);
-const cById = id => CLUES.find(c => c.id === id);
-const linkCount = () => Object.keys(state.links).length;
-const cluesFor = sid => CLUES.filter(c => state.links[c.id] === sid);
-const status = () => state.solved ? "solved" : (linkCount() || state.attempts) ? "progress" : "open";
-const STATUS_LABEL = { open:"Open", progress:"In Progress", solved:"Solved" };
+const linkCount = () => Object.keys(st.links).length;
+const cluesFor = sid => C.clues.filter(c => st.links[c.id] === sid);
+const knows = f => st.facts.includes(f);
+const score = () => Math.max(0, 100 - st.attempts * 15 - st.hints * 10);
+const status = () => st.solved ? "solved" : (linkCount() || st.examined.length || st.facts.length || st.attempts || Object.keys(st.asked).length) ? "progress" : "open";
+const STATUS = { open:"Case Open", progress:"In Progress", solved:"Case Solved" };
+function alibi(s){
+  if (s.contradict){
+    const n = s.contradict.filter(knows).length;
+    return n >= 2 ? "broken" : (n === 1 || knows("f_julian_unseen")) ? "shaky" : "none";
+  }
+  return s.exonerate.some(knows) ? "holds" : "none";
+}
+const ALIBI = { none:"Unverified", holds:"Holds up", shaky:"Shaky", broken:"Broken" };
+const tested = () => C.suspects.filter(s => alibi(s) !== "none").length;
 
-const $ = (sel, el = document) => el.querySelector(sel);
-const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-const main = $("#main");
-
+/* ---------------- feedback ---------------- */
 let toastT;
-function toast(msg){
-  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2400);
+function toast(msg, good){
+  const t = $("#toast");
+  t.className = "toast" + (good ? " good" : "");
+  t.innerHTML = `<span class="tico">${good ? "✓" : "•"}</span><span>${msg}</span>`;
+  requestAnimationFrame(() => t.classList.add("show"));
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function log(type, title, text){
+  st.log.unshift({ type, title, text });
+  st.unread++; save(); updateChrome();
+  const b = $("#noteBadge"); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+}
+function addFact(f){
+  if (!f || knows(f)) return false;
+  st.facts.push(f); save();
+  log("fact", "New fact", C.facts[f]);
+  toast(`New fact: ${C.facts[f]}`, true);
+  return true;
 }
 function updateChrome(view){
-  const s = status(), pill = $("#statusPill");
-  pill.dataset.s = s; pill.textContent = "Case " + STATUS_LABEL[s];
-  $$(".tabs a").forEach(a => { if (a.dataset.tab === view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  if (view) document.body.dataset.view = view;
+  view = document.body.dataset.view;
+  const s = status(), p = $("#statusPill");
+  p.dataset.s = s; p.textContent = STATUS[s];
+  $$(".tabs a").forEach(a => a.dataset.tab === view ? a.setAttribute("aria-current","page") : a.removeAttribute("aria-current"));
+  const b = $("#noteBadge"); b.hidden = !st.unread; b.textContent = st.unread;
 }
 
-function link(clueId, suspectId){
-  const prev = state.links[clueId];
-  state.links[clueId] = suspectId; save();
-  const c = cById(clueId), s = sById(suspectId);
-  toast(prev && prev !== suspectId ? `Clue ${c.no} moved to ${s.short}` : `Clue ${c.no} pinned to ${s.short}`);
+function link(cid, sid){
+  const prev = st.links[cid]; st.links[cid] = sid; save();
+  fresh_link = cid;
+  toast(prev && prev !== sid ? `Clue ${C_BY[cid].no} moved to ${S_BY[sid].short}` : `Clue ${C_BY[cid].no} pinned to ${S_BY[sid].short}`);
+  if (linkCount() === 5 && !prev) setTimeout(() => toast("Every clue is on the board. Time for a deduction.", true), 900);
 }
-function unlink(clueId){ delete state.links[clueId]; save(); toast(`Clue ${cById(clueId).no} unpinned`); }
+function unlink(cid){ delete st.links[cid]; save(); toast(`Clue ${C_BY[cid].no} unpinned`); }
+let fresh_link = null;
 
-/* ---------------- shared bits ---------------- */
-function stepsPanel(){
-  const s = status(), n = linkCount();
-  const steps = [
-    { label:"Case opened", done:true },
-    { label:`Connect clues (${n}/5)`, done:n === 5, now:s !== "solved" && n < 5 },
-    { label:"Name the culprit", done:state.solved, now:n === 5 && !state.solved },
-    { label:"Case solved", done:state.solved },
-  ];
-  return `<section class="panel"><h2>Case status</h2><ol class="steps">${steps.map((st,i) =>
-    `<li class="${st.done ? "done" : ""} ${st.now ? "now" : ""}"><span class="dot">${st.done ? "✓" : i + 1}</span>${st.label}</li>`).join("")}</ol></section>`;
+/* ---------------- modal ---------------- */
+let lastFocus = null;
+function openModal(html, cls = ""){
+  lastFocus = document.activeElement;
+  const m = $("#modal"), card = $("#modalCard");
+  card.className = "modal-card " + cls;
+  card.innerHTML = `<button class="x" data-close aria-label="Close">✕</button>` + html;
+  m.hidden = false;
+  $$("[data-close]", card).forEach(b => b.addEventListener("click", closeModal));
+  setTimeout(() => ($(".focus-me", card) || $("[data-close]", card)).focus(), 30);
 }
-function timelinePanel(){
-  return `<section class="panel"><h2>Timeline of the evening</h2><ol class="timeline">${TIMELINE.map(e =>
-    `<li class="${e.key ? "key" : ""}"><time>${e.t}</time>${esc(e.d)}</li>`).join("")}</ol></section>`;
+function closeModal(){
+  const m = $("#modal"); if (m.hidden) return;
+  m.hidden = true; $("#modalCard").innerHTML = "";
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  rerender();
+}
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+function examine(cid){
+  const c = C_BY[cid];
+  const first = !st.examined.includes(cid);
+  if (first){ st.examined.push(cid); save(); log("evidence", `Examined clue ${c.no}`, c.detail); }
+  addFact(c.fact);
+  const to = st.links[cid];
+  openModal(`
+    <div class="exam">
+      <div class="lens" id="lens"><img src="${img(c.img)}" alt="${esc(c.title)}"><div class="glass" id="glass"></div><span class="lens-tip">Hover to magnify</span></div>
+      <div class="exam-body">
+        <div class="eyebrow" style="color:var(--red)">Clue ${c.no} · Evidence</div>
+        <h2 id="modalTitle">${esc(c.title)}</h2>
+        <div class="where">Found: ${esc(c.where)}</div>
+        <p class="desc">${esc(c.text)}</p>
+        <div class="finding"><b>${ICON.lens.replace("<svg", '<svg width="14" height="14" style="vertical-align:-2px"')} Closer inspection</b>${esc(c.detail)}</div>
+        <div class="pin-to"><div class="lbl">Pin this clue to</div>
+          <div class="pin-faces">${C.suspects.map(s => `<button data-pin="${s.id}" aria-pressed="${to === s.id}"><img src="${face(s.id)}" alt="">${esc(s.short)}</button>`).join("")}</div>
+        </div>
+      </div>
+    </div>`);
+  const lens = $("#lens"), glass = $("#glass"), im = $("img", lens);
+  lens.addEventListener("mousemove", e => {
+    const r = lens.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, z = 2.4;
+    glass.style.left = x + "px"; glass.style.top = y + "px";
+    glass.style.backgroundImage = `url(${im.src})`;
+    glass.style.backgroundSize = `${r.width * z}px ${r.height * z}px`;
+    glass.style.backgroundPosition = `${-(x * z - 75)}px ${-(y * z - 75)}px`;
+  });
+  $$("[data-pin]", $("#modalCard")).forEach(b => b.addEventListener("click", () => {
+    link(cid, b.dataset.pin);
+    $$("[data-pin]", $("#modalCard")).forEach(x => x.setAttribute("aria-pressed", x === b));
+  }));
 }
 
-/* ---------------- screen 1: case board ---------------- */
-let selected = null, pointer = null;
+function openRoom(rid){
+  const r = R_BY[rid];
+  const people = C.suspects.filter(s => s.room === rid);
+  addFact(r.fact);
+  openModal(`<div class="room-modal">
+    <img src="${img(r.img)}" alt="">
+    <div class="in">
+      <div class="eyebrow" style="color:var(--red)">${r.crime ? "Scene of the crime" : "Floor plan · Ground floor"}</div>
+      <h2 id="modalTitle" style="font-size:28px;margin:6px 0 8px">${esc(r.name)}</h2>
+      <p style="margin:0;font-size:15.5px">${esc(r.text)}</p>
+      ${people.length ? `<div class="people">${people.map(s => `<a href="#/suspect/${s.id}" data-close><img src="${face(s.id)}" alt="">${esc(s.short)} claims to be here</a>`).join("")}</div>` : ""}
+    </div></div>`, "sm");
+}
 
-function renderBoard(){
-  const n = linkCount();
+function help(){
+  openModal(`<div class="plain">
+    <div class="eyebrow" style="color:var(--red)">Field manual</div>
+    <h2 id="modalTitle">How to work the case</h2>
+    <ol>
+      <li><b>Examine</b> each piece of evidence. A closer look often reveals something new.</li>
+      <li><b>Pin</b> every clue to the suspect it points against: drag it onto a photo, or tap the clue and then the suspect.</li>
+      <li><b>Interrogate</b> suspects in their dossiers and click rooms on the floor plan. New facts go into your notebook.</li>
+      <li>Watch the <b>alibi meters</b>. When an alibi breaks, you have your thief.</li>
+      <li>On the <b>Deduction</b> screen, name the culprit, how they got in, and the proof. False accusations and hints cost points.</li>
+    </ol>
+    <p style="color:var(--paper-mute);font-size:14px">Shortcuts: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> switch screens, <kbd>N</kbd> notebook, <kbd>Esc</kbd> closes or cancels, <kbd>?</kbd> this help.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn primary focus-me" data-close>Back to work</button><button class="btn paper" id="resetBtn">Start the case over</button></div>
+  </div>`, "sm");
+  $("#resetBtn").addEventListener("click", () => {
+    if (confirm("Start over? Your board, notes and score will be cleared.")){ st = fresh(); st.seenIntro = true; save(); closeModal(); location.hash = "#/board"; route(); toast("Fresh case file opened."); }
+  });
+}
+function credits(){
+  openModal(`<div class="plain"><div class="eyebrow" style="color:var(--red)">Archive</div><h2 id="modalTitle">Image credits</h2>
+    <p style="color:var(--paper-mute);font-size:14px;margin-top:0">All photographs are public domain or CC0. Portrait sitters are unidentified and appear here as fictional characters.</p>
+    ${C.credits.map(([t, d, u]) => `<div class="credit"><b>${esc(t)}</b><br>${esc(d)} <a href="${u}" target="_blank" rel="noopener">Source</a></div>`).join("")}</div>`, "sm");
+}
+
+/* ---------------- notebook drawer ---------------- */
+let dtab = "facts";
+function openDrawer(){
+  st.unread = 0; save(); updateChrome();
+  const d = $("#drawer");
+  renderDrawer();
+  d.classList.add("open"); d.setAttribute("aria-hidden","false"); d.inert = false;
+  $("#scrim").hidden = false;
+  setTimeout(() => $(".x", d).focus(), 50);
+}
+function closeDrawer(){
+  const d = $("#drawer"); if (!d.classList.contains("open")) return;
+  d.classList.remove("open"); d.setAttribute("aria-hidden","true"); d.inert = true; $("#scrim").hidden = true;
+  $("#notebookBtn").focus();
+}
+function renderDrawer(){
+  const d = $("#drawer");
+  const body = {
+    facts: `<p style="margin:0 0 10px;color:var(--paper-mute);font-size:14px">${st.facts.length} of ${FACT_TOTAL} facts uncovered.</p>` +
+      Object.entries(C.facts).map(([k, v]) => knows(k)
+        ? `<div class="entry"><span class="ico">✓</span><div><b>Fact</b><p>${esc(v)}</p></div></div>`
+        : `<div class="entry" style="opacity:.45"><span class="ico">?</span><div><b>Undiscovered</b><p>Keep investigating.</p></div></div>`).join(""),
+    log: st.log.length ? st.log.map(e => `<div class="entry"><span class="ico">${{ fact:"★", evidence:"🔍", statement:"💬" }[e.type] || "•"}</span><div><b>${esc(e.title)}</b><p>${esc(e.text)}</p></div></div>`).join("")
+      : `<div class="empty">Nothing yet. Examine evidence and question suspects.</div>`,
+    witnesses: C.witnesses.map(w => `<div class="witness"><img src="${img(w.id + "-face")}" alt=""><div><b>${esc(w.name)}</b><small>${esc(w.role)}</small><p>“${esc(w.says)}”</p></div></div>`).join("") +
+      `<h3 style="margin:20px 0 10px;font-size:18px">Timeline</h3><ol class="timeline" style="border-color:var(--paper-line)">${C.timeline.map(e => `<li class="${e.key ? "key" : ""}" style="color:var(--paper-ink)"><time>${e.t} pm</time>${esc(e.d)}</li>`).join("")}</ol>`,
+  }[dtab];
+  d.innerHTML = `<div class="drawer-h"><h2>Notebook</h2><button class="x" aria-label="Close notebook">✕</button></div>
+    <div class="dtabs" role="toolbar" aria-label="Notebook sections">${[["facts","Facts"],["log","Case log"],["witnesses","Witnesses"]].map(([k, l]) => `<button data-dt="${k}" aria-pressed="${dtab === k}">${l}</button>`).join("")}</div>
+    <div class="drawer-body">${body}</div>`;
+  $(".x", d).addEventListener("click", closeDrawer);
+  $$("[data-dt]", d).forEach(b => b.addEventListener("click", () => { dtab = b.dataset.dt; renderDrawer(); $(`[data-dt="${dtab}"]`, d).focus(); }));
+}
+$("#notebookBtn").addEventListener("click", openDrawer);
+$("#scrim").addEventListener("click", closeDrawer);
+
+/* ---------------- intro ---------------- */
+const WIRE = "BLUE DUCHESS SAPPHIRE STOLEN FROM ASHWORTH HOUSE BETWEEN NINE AND HALF PAST STOP NO FORCED ENTRY STOP FIVE GUESTS FIVE ALIBIS STOP THE YARD IS BAFFLED STOP COME AT ONCE STOP";
+function renderIntro(){
+  main.className = "bleed";
   main.innerHTML = `
-  <div class="fade">
+  <section class="intro">
+    <div class="intro-bg" aria-hidden="true"></div>
+    <div class="intro-inner">
+      <div class="fadeup">
+        <div class="eyebrow">Scotland Yard · Case ${C.number}</div>
+        <h1>The <em>Blue</em><br>Duchess</h1>
+        <p class="lede">${esc(C.summary)} Examine the evidence, question the guests, and pull the red string tight.</p>
+        <div class="intro-cta">
+          <a class="btn primary focus-me" href="#/board" id="enter">Open the case file <span class="arrow">→</span></a>
+          <button class="btn ghost" data-open="help">How it works</button>
+        </div>
+        <div class="intro-stats"><div><b>5</b><span>Suspects</span></div><div><b>5</b><span>Clues</span></div><div><b>${FACT_TOTAL}</b><span>Hidden facts</span></div><div><b>1</b><span>Thief</span></div></div>
+      </div>
+      <article class="telegram" aria-label="Telegram from Inspector Lestrade">
+        <div class="head"><span>POST OFFICE TELEGRAPHS</span><span>RECD 9:52 PM</span></div>
+        <p id="wire" aria-hidden="true"></p><p class="sr">${WIRE}</p>
+        <div class="sig">— Insp. Lestrade</div>
+      </article>
+    </div>
+  </section>
+  <section class="how">
+    <div><span class="n">01</span><b>Examine</b><p>Look closely at each piece of evidence. Details hide in plain sight.</p></div>
+    <div><span class="n">02</span><b>Connect</b><p>Pin every clue to a suspect with red string on the case board.</p></div>
+    <div><span class="n">03</span><b>Interrogate</b><p>Question the five guests and walk the floor plan of the house.</p></div>
+    <div><span class="n">04</span><b>Accuse</b><p>Name the thief, how they got in, and the proof. Choose wisely.</p></div>
+  </section>`;
+  $("#enter").addEventListener("click", () => { st.seenIntro = true; save(); });
+  const w = $("#wire");
+  if (reduced){ w.textContent = WIRE; return; }
+  let i = 0; const tick = () => {
+    if (!document.contains(w)) return;
+    w.innerHTML = esc(WIRE.slice(0, i)) + `<span class="caret"></span>`;
+    if (i++ < WIRE.length) setTimeout(tick, WIRE[i - 1] === " " ? 40 : 26);
+  };
+  setTimeout(tick, 700);
+}
+
+/* ---------------- board ---------------- */
+let selected = null, pointer = null;
+function meter(v, max, label){ return `<div class="meter"><b>${v}<small> / ${max}</small></b><span>${label}</span><i style="--p:${v / max * 100}%"></i></div>`; }
+function plan(){
+  const known = knows("f_door");
+  const pos = { library:[70,64], billiard:[100,212], conservatory:[295,212], drawing:[330,64] };
+  return `<svg viewBox="0 0 400 260" role="group" aria-label="Floor plan of Ashworth House">
+    <defs><clipPath id="cf"><circle r="14"/></clipPath></defs>
+    ${C.rooms.map(r => `<g class="room ${r.crime ? "crime" : ""} ${r.fact && knows(r.fact) ? "found" : ""}" data-room="${r.id}" tabindex="0" role="button" aria-label="${esc(r.name)}">
+      <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="3"/>
+      <text x="${r.x + 8}" y="${r.y + 17}">${esc(r.name)}</text></g>`).join("")}
+    <rect class="door-r" x="186" y="108" width="28" height="12" fill="#4a3d31" pointer-events="none"/>
+    <rect x="56" y="108" width="28" height="12" fill="#4a3d31" pointer-events="none"/>
+    <rect x="316" y="108" width="28" height="12" fill="#4a3d31" pointer-events="none"/>
+    <rect x="86" y="152" width="28" height="12" fill="#4a3d31" pointer-events="none"/>
+    <rect x="281" y="152" width="28" height="12" fill="#4a3d31" pointer-events="none"/>
+    <line x1="175" y1="10" x2="225" y2="10" stroke="#8fb0ff" stroke-width="4" pointer-events="none"/>
+    ${known ? `<rect x="258" y="46" width="14" height="26" fill="#ecd27c" pointer-events="none"><animate attributeName="opacity" values="1;.4;1" dur="1.6s" repeatCount="3"/></rect>` : ""}
+    <g pointer-events="none"><path d="M200 52 l12 12 -12 22 -12 -22z" fill="#3a6ee8" stroke="#ecd27c" stroke-width="1.5"/><text x="200" y="100" text-anchor="middle" fill="#de4a3d" style="font:700 9px var(--mono)">SAFE</text></g>
+    ${Object.entries(pos).map(([room, [x, y]]) => { const s = C.suspects.find(v => v.room === room);
+      return s ? `<g class="who" transform="translate(${x},${y})" pointer-events="none"><image href="${face(s.id)}" x="-14" y="-14" width="28" height="28" clip-path="url(#cf)" preserveAspectRatio="xMidYMid slice"/><circle r="14"/></g>` : ""; }).join("")}
+  </svg>
+  <div class="plan-legend"><span><i style="background:#8fb0ff"></i>Window</span><span><i style="background:#4a3d31"></i>Door</span>${known ? `<span><i></i>Connecting door</span>` : ""}<span>Lang: left by cab, 8:45</span></div>`;
+}
+function stepsPanel(){
+  const n = linkCount(), s = status();
+  const steps = [
+    { l:"Case opened", d:true },
+    { l:`Pin every clue (${n}/5)`, d:n === 5, now:n < 5 && s !== "solved" },
+    { l:`Test the alibis (${tested()}/5)`, d:tested() === 5, now:n === 5 && tested() < 5 && !st.solved },
+    { l:"Name the culprit", d:st.solved, now:n === 5 && tested() === 5 && !st.solved },
+    { l:"Case solved", d:st.solved },
+  ];
+  return `<ol class="steps">${steps.map((x, i) => `<li class="${x.d ? "done" : ""} ${x.now ? "now" : ""}"><span class="dot">${x.d ? "✓" : i + 1}</span>${x.l}</li>`).join("")}</ol>`;
+}
+function renderBoard(){
+  main.className = "";
+  main.innerHTML = `
+  <div class="fadeup">
     <div class="board-head">
       <div>
-        <div class="eyebrow">Case No. 221B · The Blue Duchess</div>
+        <div class="eyebrow">Case ${C.number} · ${C.title}</div>
         <h1>The Case Board</h1>
-        <p class="lede">A sapphire vanished from Lady Ashworth's study between 9:00 and 9:30 pm. Five guests, five alibis, five clues. Pin each clue to the suspect it points against.</p>
+        <p class="lede">Pin each clue to the suspect it points against. Examine evidence and test every alibi before you accuse.</p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
-        <div class="progress"><span>${n}/5 connected</span><div class="bar"><i style="width:${n * 20}%"></i></div></div>
-        <a class="btn primary" href="#/deduce">${state.solved ? "View verdict" : "Make a deduction"} →</a>
+      <div class="meters">
+        ${meter(linkCount(), 5, "Clues pinned")}${meter(st.examined.length, 5, "Examined")}${meter(st.facts.length, FACT_TOTAL, "Facts")}${meter(tested(), 5, "Alibis tested")}
       </div>
     </div>
     <div class="layout">
       <section class="cork" id="cork" aria-label="Detective board">
         <svg id="strings" aria-hidden="true"></svg>
-        <span class="zone-label">Suspects</span>
-        <div class="suspects">${SUSPECTS.map(s => {
-          const c = cluesFor(s.id).length;
-          return `<button class="suspect ${c ? "has" : ""} ${state.solved && s.id === CULPRIT ? "accused" : ""}" data-sid="${s.id}"
-            aria-label="${esc(s.name)}, ${c} clue${c === 1 ? "" : "s"} pinned. Open profile">
-            <span class="pin"></span><span class="pin bottom"></span>
-            <span class="count">${c}</span>
-            <span class="photo">${portrait(s)}</span>
-            <div class="name">${esc(s.name)}</div><div class="role">${esc(s.role)}</div>
+        <div class="zone"><span class="zone-label">The suspects</span><span class="zone-note">Who had the chance?</span></div>
+        <div class="row suspects">${C.suspects.map(s => { const n = cluesFor(s.id).length, a = alibi(s);
+          return `<button class="suspect ${n ? "has" : ""} ${st.solved && s.id === C.culprit ? "guilty" : ""}" data-sid="${s.id}" aria-label="${esc(s.name)}. Alibi ${ALIBI[a]}. ${n} clue${n === 1 ? "" : "s"} pinned.">
+            <span class="pin"></span><span class="pin b"></span><span class="count">${n}</span>
+            <span class="photo"><img src="${face(s.id)}" alt="" loading="lazy"></span>
+            <span class="nm">${esc(s.name)}</span><span class="rl">${esc(s.role)}</span>
+            <span class="alibi-chip" data-a="${a}">${ALIBI[a]}</span>
           </button>`; }).join("")}</div>
-        <span class="zone-label">Evidence</span>
-        <div class="clues">${CLUES.map(c => {
-          const to = state.links[c.id];
-          return `<div class="clue ${to ? "linked" : ""}" draggable="true" data-cid="${c.id}" tabindex="0" role="button"
-            aria-pressed="false" aria-label="Clue ${c.no}: ${esc(c.title)}. ${to ? "Pinned to " + esc(sById(to).short) : "Not pinned"}. Press to select, then choose a suspect">
+        <div class="zone"><span class="zone-label">The evidence</span><span class="zone-note">Found in the study</span></div>
+        <div class="row clues">${C.clues.map(c => { const to = st.links[c.id], seen = st.examined.includes(c.id);
+          return `<div class="clue ${to ? "linked" : ""} ${selected === c.id ? "selected" : ""}" draggable="true" data-cid="${c.id}" tabindex="0" role="button" aria-pressed="${selected === c.id}"
+            aria-label="Clue ${c.no}, ${esc(c.title)}. ${to ? "Pinned to " + esc(S_BY[to].short) : "Not pinned"}. Press Enter to select, then choose a suspect.">
             <span class="pin"></span>
-            <button class="unlink" data-unlink="${c.id}" aria-label="Unpin clue ${c.no}" title="Unpin">×</button>
-            <span class="no">CLUE ${c.no} · ${esc(c.where.toUpperCase())}</span>
-            <h3>${esc(c.title)}</h3>
-            <p>${esc(c.text)}</p>
-            <span class="tag">${to ? `Pinned to <b>${esc(sById(to).short)}</b>` : "Drag onto a suspect"}</span>
-          </div>`; }).join("")}</div>
-        <div class="hint" id="hint">Drag a clue onto a suspect, or tap a clue then tap a suspect. Tap a photo to open the dossier.</div>
+            <div class="shot"><img src="${img(c.img)}" alt="" loading="lazy" draggable="false"><span class="tagno">No. ${c.no}</span>${seen ? `<span class="seen" title="Examined">${ICON.eye}</span>` : ""}</div>
+            <div class="body"><span class="where">${esc(c.where)}</span><h3>${esc(c.title)}</h3><p>${esc(c.text)}</p>
+              <span class="to">${to ? `Pinned to <b>${esc(S_BY[to].short)}</b>` : "Not pinned yet"}</span>
+              <div class="foot-row"><button class="mini-btn grow" data-exam="${c.id}">${ICON.lens}Examine</button>${to ? `<button class="mini-btn" data-unlink="${c.id}" aria-label="Unpin clue ${c.no}" title="Unpin">✕</button>` : ""}</div>
+            </div></div>`; }).join("")}</div>
+        <div class="board-hint" id="hint">${ICON.hand}<span>${hintText()}</span></div>
       </section>
       <aside class="side">
-        <section class="panel brief"><div class="gem">${gemSVG}<div><div class="eyebrow">Stolen</div><h2 style="margin:0">The Blue Duchess</h2></div></div>
-          <p>A 42-carat Kashmir sapphire, kept in the study safe. No forced entry. Only family knew the combination.</p></section>
-        ${stepsPanel()}
-        ${timelinePanel()}
-        <button class="btn ghost" id="reset">Reset case</button>
+        <section class="panel"><div class="panel-h"><h2>Case status</h2><span class="chip" style="background:var(--ink-3);color:var(--brass-2)">Score ${score()}</span></div>${stepsPanel()}
+          <a class="btn primary" href="#/deduce" style="width:100%;margin-top:14px">${st.solved ? "View the verdict" : "Make a deduction"} <span class="arrow">→</span></a></section>
+        <section class="panel plan"><div class="panel-h"><h2>Ashworth House</h2><span style="font-size:12px;color:var(--mute)">Tap a room</span></div>${plan()}</section>
+        <section class="panel"><div class="panel-h"><h2>The evening</h2></div><ol class="timeline">${C.timeline.map(e => `<li class="${e.key ? "key" : ""}"><time>${e.t} pm</time>${esc(e.d)}</li>`).join("")}</ol></section>
+        <section class="panel hints"><div class="panel-h"><h2>Need a nudge?</h2></div>
+          ${C.hints.slice(0, st.hints).map(h => `<div class="hint">${esc(h)}</div>`).join("")}
+          ${st.hints < C.hints.length && !st.solved ? `<button class="btn sm" id="hintBtn">Reveal hint ${st.hints + 1} of ${C.hints.length}</button><div class="cost">Each hint costs 10 points.</div>` : st.hints ? "" : `<div class="cost">No hints used.</div>`}
+        </section>
       </aside>
     </div>
   </div>`;
   bindBoard();
-  updateChrome("board");
-  requestAnimationFrame(drawStrings);
+  requestAnimationFrame(() => drawStrings(true));
 }
-
-function anchor(el, cork, where){
-  const r = el.getBoundingClientRect(), c = cork.getBoundingClientRect();
-  return { x:r.left - c.left + r.width / 2, y:(where === "top" ? r.top : r.bottom) - c.top };
+function hintText(){
+  return selected ? `Clue ${C_BY[selected].no} selected. Now tap the suspect it points to. <kbd>Esc</kbd> to cancel.`
+    : "Drag a clue onto a suspect, or tap a clue then a suspect. Tap a photo to open the dossier.";
 }
-function curve(a, b){
-  const sag = Math.min(60, Math.abs(a.x - b.x) * .15 + 20);
-  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + sag;
-  return `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
-}
-function drawStrings(){
-  const cork = $("#cork"), svg = $("#strings");
-  if (!cork || !svg) return;
-  let d = "";
-  for (const [cid, sid] of Object.entries(state.links)){
+function anchor(el, box, top){ const r = el.getBoundingClientRect(); return { x:r.left - box.left + r.width / 2, y:(top ? r.top : r.bottom) - box.top }; }
+function curve(a, b){ const sag = Math.min(70, Math.abs(a.x - b.x) * .18 + 22); return `M${a.x},${a.y} Q${(a.x + b.x) / 2},${(a.y + b.y) / 2 + sag} ${b.x},${b.y}`; }
+function drawStrings(animate){
+  const cork = $("#cork"), svg = $("#strings"); if (!cork) return;
+  const box = cork.getBoundingClientRect(); let d = "";
+  for (const [cid, sid] of Object.entries(st.links)){
     const ce = $(`.clue[data-cid="${cid}"]`, cork), se = $(`.suspect[data-sid="${sid}"]`, cork);
-    if (ce && se) d += `<path d="${curve(anchor(ce, cork, "top"), anchor(se, cork, "bottom"))}"/>`;
+    if (ce && se) d += `<path data-c="${cid}" d="${curve(anchor(ce, box, true), anchor(se, box, false))}"/>`;
   }
-  if (selected && pointer){
-    const ce = $(`.clue[data-cid="${selected}"]`, cork);
-    if (ce) d += `<path class="ghost" d="${curve(anchor(ce, cork, "top"), pointer)}"/>`;
-  }
+  if (selected && pointer){ const ce = $(`.clue[data-cid="${selected}"]`, cork); if (ce) d += `<path class="ghost" d="${curve(anchor(ce, box, true), pointer)}"/>`; }
   svg.innerHTML = d;
+  if (animate && fresh_link && !reduced){
+    const p = $(`path[data-c="${fresh_link}"]`, svg);
+    if (p){ p.style.setProperty("--len", p.getTotalLength()); p.classList.add("new"); }
+    fresh_link = null;
+  }
 }
-
 function select(cid){
   selected = selected === cid ? null : cid;
+  if (!selected) pointer = null;
   $$(".clue").forEach(el => { const on = el.dataset.cid === selected; el.classList.toggle("selected", on); el.setAttribute("aria-pressed", on); });
   $$(".suspect").forEach(el => el.classList.toggle("target", !!selected));
-  const hint = $("#hint");
-  if (hint) hint.innerHTML = selected
-    ? `Clue ${cById(selected).no} selected. Now choose the suspect it points to. <kbd>Esc</kbd> to cancel`
-    : "Drag a clue onto a suspect, or tap a clue then tap a suspect. Tap a photo to open the dossier.";
-  if (!selected) pointer = null;
+  const h = $("#hint span"); if (h) h.innerHTML = hintText();
   drawStrings();
 }
-
 function bindBoard(){
   const cork = $("#cork");
   $$(".clue", cork).forEach(el => {
-    el.addEventListener("click", e => {
-      if (e.target.closest("[data-unlink]")) return;
-      select(el.dataset.cid);
-    });
-    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); select(el.dataset.cid); } });
-    el.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", el.dataset.cid); e.dataTransfer.effectAllowed = "link"; el.classList.add("dragging"); select(el.dataset.cid); });
+    el.addEventListener("click", e => { if (!e.target.closest("button")) select(el.dataset.cid); });
+    el.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target === el){ e.preventDefault(); select(el.dataset.cid); } });
+    el.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", el.dataset.cid); el.classList.add("dragging"); selected = null; select(el.dataset.cid); });
     el.addEventListener("dragend", () => { el.classList.remove("dragging"); if (selected) select(null); });
   });
-  $$("[data-unlink]", cork).forEach(b => b.addEventListener("click", e => { e.stopPropagation(); unlink(b.dataset.unlink); selected = null; renderBoard(); }));
+  $$("[data-exam]", cork).forEach(b => b.addEventListener("click", () => examine(b.dataset.exam)));
+  $$("[data-unlink]", cork).forEach(b => b.addEventListener("click", () => { unlink(b.dataset.unlink); selected = null; renderBoard(); updateChrome(); }));
   $$(".suspect", cork).forEach(el => {
     el.addEventListener("click", () => {
-      if (selected){ link(selected, el.dataset.sid); selected = null; renderBoard(); }
+      if (selected){ link(selected, el.dataset.sid); selected = null; renderBoard(); updateChrome(); }
       else location.hash = "#/suspect/" + el.dataset.sid;
     });
     el.addEventListener("dragover", e => { e.preventDefault(); el.classList.add("drop"); });
     el.addEventListener("dragleave", () => el.classList.remove("drop"));
-    el.addEventListener("drop", e => {
-      e.preventDefault(); const cid = e.dataTransfer.getData("text/plain");
-      if (cid){ link(cid, el.dataset.sid); selected = null; renderBoard(); }
-    });
+    el.addEventListener("drop", e => { e.preventDefault(); const cid = e.dataTransfer.getData("text/plain"); if (cid){ link(cid, el.dataset.sid); selected = null; renderBoard(); updateChrome(); } });
   });
-  cork.addEventListener("pointermove", e => {
-    if (!selected) return;
-    const c = cork.getBoundingClientRect(); pointer = { x:e.clientX - c.left, y:e.clientY - c.top }; drawStrings();
+  const move = e => { if (!selected) return; const b = cork.getBoundingClientRect(); pointer = { x:e.clientX - b.left, y:e.clientY - b.top }; drawStrings(); };
+  cork.addEventListener("pointermove", move); cork.addEventListener("dragover", move);
+  $$("[data-room]").forEach(g => {
+    g.addEventListener("click", () => openRoom(g.dataset.room));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openRoom(g.dataset.room); } });
   });
-  cork.addEventListener("dragover", e => {
-    if (!selected) return;
-    const c = cork.getBoundingClientRect(); pointer = { x:e.clientX - c.left, y:e.clientY - c.top }; drawStrings();
-  });
-  $("#reset").addEventListener("click", () => {
-    if (confirm("Reset the case? All pinned clues, notes and accusations will be cleared.")){ state = fresh(); save(); selected = null; renderBoard(); updateChrome("board"); toast("Case reset. Fresh start, detective."); }
-  });
+  const hb = $("#hintBtn");
+  if (hb) hb.addEventListener("click", () => { st.hints++; save(); log("fact", `Hint ${st.hints}`, C.hints[st.hints - 1]); renderBoard(); updateChrome(); });
 }
 
-/* ---------------- screen 2: suspect profile ---------------- */
-function renderProfile(sid){
-  const s = sById(sid) || SUSPECTS[0];
-  const pinned = cluesFor(s.id), idx = SUSPECTS.indexOf(s);
-  const prev = SUSPECTS[(idx + 4) % 5], next = SUSPECTS[(idx + 1) % 5];
-  const unpinned = CLUES.filter(c => !state.links[c.id]);
+/* ---------------- dossier ---------------- */
+function renderDossier(sid){
+  main.className = "";
+  const s = S_BY[sid] || C.suspects[0];
+  const i = C.suspects.indexOf(s), prev = C.suspects[(i + 4) % 5], next = C.suspects[(i + 1) % 5];
+  const a = alibi(s), asked = st.asked[s.id] || [], pinned = cluesFor(s.id), free = C.clues.filter(c => !st.links[c.id]);
+  const meterText = { none:"Not yet tested. Question them, examine the evidence.", holds:"Corroborated by independent facts.", shaky:"Something doesn't add up.", broken:"The alibi is a lie." }[a];
   main.innerHTML = `
-  <div class="fade">
-    <a href="#/board" class="btn ghost">← Back to board</a>
-    <nav class="profile-nav" aria-label="All suspects">${SUSPECTS.map(x =>
-      `<a href="#/suspect/${x.id}" ${x.id === s.id ? 'aria-current="true"' : ""}><span class="mini">${portrait(x)}</span>${esc(x.short)}${cluesFor(x.id).length ? ` · ${cluesFor(x.id).length}` : ""}</a>`).join("")}</nav>
+  <div class="fadeup">
+    <div class="dossier-top"><a href="#/board" class="btn ghost sm">← Case board</a><span style="font:13px var(--mono);color:var(--mute)">Suspect ${i + 1} of 5</span></div>
+    <nav class="lineup-nav" aria-label="All suspects">${C.suspects.map(x => `<a href="#/suspect/${x.id}" ${x.id === s.id ? 'aria-current="true"' : ""}><img src="${face(x.id)}" alt="">${esc(x.short)}<span class="dotst" data-a="${alibi(x)}" title="Alibi: ${ALIBI[alibi(x)]}"></span></a>`).join("")}</nav>
     <div class="dossier">
-      <div>
-        <div class="polaroid"><div class="photo">${portrait(s)}</div><div class="cap">Suspect ${idx + 1} of 5 · ${esc(s.short)}</div></div>
+      <div class="cabinet">
+        <div class="frame"><img src="${img(s.id + "-card")}" alt="Cabinet-card photograph of ${esc(s.name)}"></div>
+        <div class="cap">Cabinet card · ${esc(s.short)} · c. 1880s</div>
+        <div class="pager"><a class="btn sm" href="#/suspect/${prev.id}">← ${esc(prev.short)}</a><a class="btn sm" href="#/suspect/${next.id}">${esc(next.short)} →</a></div>
       </div>
       <article class="file">
+        <span class="stamp-c">CONFIDENTIAL</span>
         <div class="eyebrow" style="color:var(--red)">Suspect dossier</div>
         <h1>${esc(s.name)}</h1>
-        <div class="role">${esc(s.role)}</div>
-        <dl class="facts">
-          <div><dt>Age</dt><dd>${s.age}</dd></div>
-          <div><dt>Connection</dt><dd>${esc(s.relation)}</dd></div>
-          <div><dt>Possible motive</dt><dd>${esc(s.motive)}</dd></div>
-        </dl>
-        <div class="section">
-          <h2>Alibi <span class="chip">STATEMENT</span></h2>
+        <div class="sub">${esc(s.role)}</div>
+        <dl class="facts"><div><dt>Age</dt><dd>${s.age}</dd></div><div><dt>Connection</dt><dd>${esc(s.relation)}</dd></div><div><dt>Possible motive</dt><dd>${esc(s.motive)}</dd></div></dl>
+
+        <section class="sec"><div class="sec-h"><h2>Alibi</h2><span class="chip">Statement</span></div>
           <blockquote class="quote">“${esc(s.alibi)}”</blockquote>
-          <p style="margin:10px 0 0;font-size:14px;color:var(--paper-mute)"><b style="color:var(--paper-ink)">Verified:</b> ${esc(s.alibiCheck)}</p>
-        </div>
-        <div class="section">
-          <h2>Clues pinned <span class="chip">${pinned.length}</span></h2>
-          <div class="evidence">${pinned.length ? pinned.map(c =>
-            `<div class="ev"><span class="no">CLUE ${c.no}</span><div><h3>${esc(c.title)}</h3><p>${esc(c.text)}</p></div>
-             <button class="btn" data-unlink="${c.id}">Unpin</button></div>`).join("")
-            : `<div class="empty">No clues pinned to ${esc(s.short)} yet.</div>`}
-          </div>
-          ${unpinned.length ? `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <span style="font-size:13px;color:var(--paper-mute)">Pin an unassigned clue:</span>
-            ${unpinned.map(c => `<button class="btn ghost" style="color:var(--paper-ink);border-color:#cbb994;padding:6px 10px;font-size:12px" data-pin="${c.id}">+ ${c.no} ${esc(c.title)}</button>`).join("")}
-          </div>` : ""}
-        </div>
-        <div class="section notes">
-          <h2><label for="notes">Detective's notes</label></h2>
-          <textarea id="notes" placeholder="What doesn't add up about ${esc(s.short)}?">${esc(state.notes[s.id] || "")}</textarea>
-        </div>
-        <div class="file-actions">
-          <a class="btn ghost" href="#/suspect/${prev.id}">← ${esc(prev.short)}</a>
-          <a class="btn ghost" href="#/suspect/${next.id}">${esc(next.short)} →</a>
-          <a class="btn primary" style="margin-left:auto" href="#/deduce?s=${s.id}">Accuse ${esc(s.short)}</a>
-        </div>
+          <div class="alibi-meter" data-a="${a}"><span class="bars"><i></i><i></i><i></i></span><div><b>${ALIBI[a]}.</b> <span>${meterText}</span></div></div>
+        </section>
+
+        <section class="sec"><div class="sec-h"><h2>Interrogation</h2><span class="chip">${asked.length} / ${s.questions.length} asked</span></div>
+          <div class="chat" id="chat" aria-live="polite">${asked.map(qi => bubbles(s, qi)).join("")}</div>
+          <div class="asks">${s.questions.map((q, qi) => asked.includes(qi) ? "" : `<button class="ask" data-q="${qi}">“${esc(q.q)}”</button>`).join("") || `<span style="font-size:14px;color:var(--paper-mute)">You've asked everything. Cross-check the answers against the evidence.</span>`}</div>
+        </section>
+
+        <section class="sec"><div class="sec-h"><h2>Evidence pinned</h2><span class="chip">${pinned.length}</span></div>
+          <div class="ev-list">${pinned.length ? pinned.map(c => `<div class="ev"><img src="${img(c.img)}" alt=""><div class="t"><b>${esc(c.title)}</b><span>${esc(c.text)}</span></div>
+            <button class="btn sm paper" data-exam="${c.id}">Examine</button><button class="btn sm paper" data-unlink="${c.id}" aria-label="Unpin ${esc(c.title)}">✕</button></div>`).join("")
+            : `<div class="empty">No clues pinned to ${esc(s.short)} yet.</div>`}</div>
+          ${free.length ? `<div class="pin-row">Pin a loose clue: ${free.map(c => `<button class="mini-btn" data-pin="${c.id}">+ ${c.no} ${esc(c.title)}</button>`).join("")}</div>` : ""}
+        </section>
+
+        <section class="sec notes"><div class="sec-h"><h2><label for="notes">Your notes</label></h2></div>
+          <textarea id="notes" placeholder="What doesn't add up about ${esc(s.short)}?">${esc(st.notes[s.id] || "")}</textarea></section>
+
+        <div class="file-actions"><a class="btn paper" href="#/board">Back to the board</a><span class="grow"></span>
+          ${st.solved ? "" : `<a class="btn danger" href="#/deduce" data-accuse="${s.id}">Accuse ${esc(s.short)}</a>`}</div>
       </article>
     </div>
   </div>`;
-  $$("[data-unlink]").forEach(b => b.addEventListener("click", () => { unlink(b.dataset.unlink); renderProfile(s.id); updateChrome("suspect"); }));
-  $$("[data-pin]").forEach(b => b.addEventListener("click", () => { link(b.dataset.pin, s.id); renderProfile(s.id); updateChrome("suspect"); }));
-  let nt; $("#notes").addEventListener("input", e => { clearTimeout(nt); nt = setTimeout(() => { state.notes[s.id] = e.target.value; save(); }, 300); });
+  $$(".ask").forEach(b => b.addEventListener("click", () => ask(s, +b.dataset.q)));
+  $$("[data-exam]").forEach(b => b.addEventListener("click", () => examine(b.dataset.exam)));
+  $$("[data-unlink]").forEach(b => b.addEventListener("click", () => { unlink(b.dataset.unlink); renderDossier(s.id); updateChrome(); }));
+  $$("[data-pin]").forEach(b => b.addEventListener("click", () => { link(b.dataset.pin, s.id); renderDossier(s.id); updateChrome(); }));
+  const acc = $("[data-accuse]"); if (acc) acc.addEventListener("click", () => { st.pick.s = s.id; st.step = 1; save(); });
+  let t; $("#notes").addEventListener("input", e => { clearTimeout(t); t = setTimeout(() => { st.notes[s.id] = e.target.value; save(); }, 300); });
+}
+function bubbles(s, qi){
+  const q = s.questions[qi];
+  return `<div class="bubble q">${esc(q.q)}</div><div class="bubble a"><img src="${face(s.id)}" alt=""><div>${esc(q.a)}${q.fact ? `<span class="fact-tag">★ ${esc(C.facts[q.fact])}</span>` : ""}</div></div>`;
+}
+let asking = false;
+function ask(s, qi){
+  if (asking) return; asking = true;
+  $$(".ask").forEach(b => b.disabled = true);
+  const chat = $("#chat"), q = s.questions[qi];
+  chat.insertAdjacentHTML("beforeend", `<div class="bubble q">${esc(q.q)}</div><div class="bubble a" id="typing"><img src="${face(s.id)}" alt=""><span class="typing"><i></i><i></i><i></i></span></div>`);
+  $("#typing").scrollIntoView({ block:"nearest", behavior:"smooth" });
+  setTimeout(() => {
+    (st.asked[s.id] = st.asked[s.id] || []).push(qi); save();
+    log("statement", `${s.short}: “${q.q}”`, q.a);
+    addFact(q.fact);
+    asking = false;
+    renderDossier(s.id); updateChrome();
+    const last = $$(".bubble.a").pop(); if (last) last.scrollIntoView({ block:"nearest" });
+  }, reduced ? 50 : 1100);
 }
 
-/* ---------------- screen 3: deduction ---------------- */
-let pick = { s:null, c:null }, lastResult = null;
-
-function renderDeduce(pre){
-  if (state.solved) return renderSolved();
-  if (pre && sById(pre)) pick.s = pre;
-  const n = linkCount();
-  const sentence = `I accuse <${pick.s ? "em" : "span class='blank'"}>${pick.s ? esc(sById(pick.s).name) : "the culprit"}</${pick.s ? "em" : "span"}> of stealing the Blue Duchess. The proof is <${pick.c ? "em" : "span class='blank'"}>${pick.c ? esc(cById(pick.c).title.toLowerCase()) : "the key evidence"}</${pick.c ? "em" : "span"}>.`;
+/* ---------------- deduction ---------------- */
+let lastResult = null;
+function renderDeduce(){
+  main.className = "";
+  if (st.solved) return renderSolved();
+  const p = st.pick, step = st.step || 0;
+  const names = ["Who", "How", "Proof"], subs = ["Name the thief", "How they got in", "Evidence that breaks the alibi"];
+  const done = [!!p.s, !!p.m, !!p.c];
+  const blank = t => `<span class="blank">${t}</span>`;
+  const sentence = `I accuse ${p.s ? `<em>${esc(S_BY[p.s].name)}</em>` : blank("the culprit")}. They entered the study ${p.m ? `<em>${esc(C.methods.find(m => m.id === p.m).label.toLowerCase())}</em>` : blank("by some route")}, and the proof is ${p.c ? `<em>${esc(C_BY[p.c].title.toLowerCase())}</em>` : blank("the key evidence")}.`;
+  let stage = "";
+  if (step === 0) stage = `<h2>Who took the Blue Duchess?</h2><p class="lede">Choose carefully. Every false accusation costs 15 points.</p>
+    <div class="lineup" role="radiogroup" aria-label="Suspects">${C.suspects.map(s => `<label class="pick"><input type="radio" name="s" value="${s.id}" ${p.s === s.id ? "checked" : ""}><span class="tick">✓</span>
+      <span class="photo"><img src="${face(s.id)}" alt=""></span><div class="nm">${esc(s.name)}</div><div class="meta">Alibi: ${ALIBI[alibi(s)]}</div></label>`).join("")}</div>`;
+  if (step === 1) stage = `<h2>How did they reach the safe?</h2><p class="lede">The study has a window, a hall door, and a safe that was opened, not broken. Check the floor plan.</p>
+    <div class="opts" role="radiogroup" aria-label="Method">${C.methods.map(m => `<label class="opt"><input type="radio" name="m" value="${m.id}" ${p.m === m.id ? "checked" : ""}><div><b>${esc(m.label)}</b></div></label>`).join("")}</div>`;
+  if (step === 2) stage = `<h2>What proves it?</h2><p class="lede">Pick the single piece of evidence that destroys the culprit's alibi.</p>
+    <div class="opts" role="radiogroup" aria-label="Evidence">${C.clues.map(c => { const to = st.links[c.id];
+      return `<label class="opt"><input type="radio" name="c" value="${c.id}" ${p.c === c.id ? "checked" : ""}><img src="${img(c.img)}" alt=""><div><span class="who">Clue ${c.no} · ${to ? "pinned to " + esc(S_BY[to].short) : "unpinned"}</span><b>${esc(c.title)}</b><span>${esc(st.examined.includes(c.id) ? c.detail : c.text)}</span></div></label>`; }).join("")}</div>`;
   main.innerHTML = `
-  <div class="fade">
+  <div class="fadeup">
     <div class="eyebrow">Final step</div>
     <h1>The Deduction</h1>
-    <p class="lede">Choose the thief and the single piece of evidence that breaks their alibi. A false accusation is recorded on the file.</p>
-    <div class="deduce">
-      <div>
-        <h2 class="step-h"><span class="n">1</span>Who took the sapphire?</h2>
-        <div class="lineup" role="radiogroup" aria-label="Choose a suspect">${SUSPECTS.map(s => `
-          <label class="pick"><input type="radio" name="s" value="${s.id}" ${pick.s === s.id ? "checked" : ""}>
-            <span class="tick">✓</span><span class="photo">${portrait(s)}</span>
-            <div class="nm">${esc(s.name)}</div><div class="meta">${cluesFor(s.id).length} clue${cluesFor(s.id).length === 1 ? "" : "s"} pinned</div></label>`).join("")}
-        </div>
-        <h2 class="step-h"><span class="n">2</span>Which evidence breaks the alibi?</h2>
-        <div class="ev-pick" role="radiogroup" aria-label="Choose the key evidence">${CLUES.map(c => {
-          const to = state.links[c.id];
-          return `<label><input type="radio" name="c" value="${c.id}" ${pick.c === c.id ? "checked" : ""}>
-            <div><span class="who">Clue ${c.no} · ${to ? "pinned to " + esc(sById(to).short) : "unpinned"}</span><b>${esc(c.title)}</b><span>${esc(c.text)}</span></div></label>`; }).join("")}
-        </div>
+    <div class="wsteps" role="tablist" aria-label="Deduction steps">${names.map((n, i) => `<button role="tab" data-step="${i}" class="${done[i] ? "done" : ""}" ${i === step ? 'aria-current="step" aria-selected="true"' : 'aria-selected="false"'}><span class="n">${done[i] ? "✓" : i + 1}</span><span><b>${n}</b>${subs[i]}</span></button>`).join("")}</div>
+    <div class="wizard">
+      <div class="stage" id="stage">${stage}
+        <div class="stage-nav">${step > 0 ? `<button class="btn" data-go="${step - 1}">← Back</button>` : "<span></span>"}${step < 2 ? `<button class="btn primary" data-go="${step + 1}" ${done[step] ? "" : "disabled"}>Next <span class="arrow">→</span></button>` : ""}</div>
       </div>
       <aside class="verdict" aria-live="polite">
         <div class="eyebrow" style="color:var(--red)">Statement to Scotland Yard</div>
-        <h2>Name the culprit</h2>
+        <h2>Your accusation</h2>
         <div class="sentence">${sentence}</div>
-        <button class="btn danger" id="accuse" ${pick.s && pick.c ? "" : "disabled"}>Make the accusation</button>
-        <small>${n < 5 ? `Tip: you've connected ${n} of 5 clues. Finish the board first for a clearer picture.` : "All clues are on the board. Trust your reasoning."}</small>
-        ${lastResult ? `<div class="result bad">${lastResult}</div>` : ""}
-        ${state.attempts ? `<div class="attempts">False accusations on file: ${state.attempts}</div>` : ""}
+        <button class="btn danger" id="accuse" ${done.every(Boolean) ? "" : "disabled"}>Make the accusation</button>
+        <small>${linkCount() < 5 || tested() < 5 ? `You've pinned ${linkCount()}/5 clues and tested ${tested()}/5 alibis. Finishing the board first helps.` : "Your board is complete. Trust your reasoning."}</small>
+        ${lastResult ? `<div class="result ${lastResult.cls}">${lastResult.html}</div>` : ""}
+        <div class="score-line"><span>Score ${score()}</span><span>False accusations ${st.attempts} · Hints ${st.hints}</span></div>
       </aside>
     </div>
   </div>`;
-  $$('input[name="s"]').forEach(i => i.addEventListener("change", () => { pick.s = i.value; lastResult = null; renderDeduce(); $(`input[name="s"][value="${i.value}"]`).focus(); }));
-  $$('input[name="c"]').forEach(i => i.addEventListener("change", () => { pick.c = i.value; lastResult = null; renderDeduce(); $(`input[name="c"][value="${i.value}"]`).focus(); }));
+  $$("input[type=radio]", main).forEach(r => r.addEventListener("change", () => {
+    st.pick[r.name] = r.value; save(); lastResult = null;
+    renderDeduce(); const el = $(`input[name="${r.name}"][value="${r.value}"]`); if (el) el.focus();
+  }));
+  $$("[data-go]").forEach(b => b.addEventListener("click", () => { st.step = +b.dataset.go; save(); renderDeduce(); $("#stage h2").focus?.(); }));
+  $$("[data-step]").forEach(b => b.addEventListener("click", () => { st.step = +b.dataset.step; save(); renderDeduce(); }));
   $("#accuse").addEventListener("click", accuse);
 }
-
 function accuse(){
-  if (pick.s === CULPRIT && pick.c === KEY_CLUE){
-    state.solved = true; state.accused = CULPRIT; state.solvedAt = Date.now(); save();
-    lastResult = null; updateChrome("deduce"); renderSolved(); window.scrollTo({ top:0, behavior:"smooth" }); return;
+  const p = st.pick;
+  if (p.s === C.culprit && p.m === C.method && p.c === C.proof){
+    st.solved = true; st.solvedAt = Date.now(); save(); lastResult = null; updateChrome();
+    return reveal();
   }
-  state.attempts++; save();
-  if (pick.s === CULPRIT) lastResult = `<b>Right instinct, wrong proof.</b> "${esc(cById(pick.c).title)}" doesn't break Julian's alibi. Ask yourself: did anyone actually <i>see</i> him at the piano?`;
-  else lastResult = `<b>The accusation collapses.</b> ${esc(sById(pick.s).rebuttal)}`;
-  updateChrome("deduce"); renderDeduce();
+  st.attempts++; save();
+  if (p.s !== C.culprit) lastResult = { cls:"bad", html:`<b>The accusation collapses.</b> ${esc(S_BY[p.s].rebuttal)} <br><br>−15 points.` };
+  else if (p.m !== C.method) lastResult = { cls:"warn", html:`<b>Right suspect, wrong route.</b> ${esc(C.methods.find(m => m.id === p.m).rebut)} −15 points.` };
+  else lastResult = { cls:"warn", html:`<b>The Yard won't charge on that.</b> "${esc(C_BY[p.c].title)}" doesn't break Julian's alibi. What made it look like he was at the piano? −15 points.` };
+  log("fact", "False accusation", lastResult.html.replace(/<[^>]+>/g, ""));
+  updateChrome(); renderDeduce();
 }
-
+function reveal(){
+  const s = S_BY[C.culprit];
+  const ov = document.createElement("div");
+  ov.className = "reveal"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-label","Case solved");
+  ov.innerHTML = `<div class="reveal-inner"><div class="face"><img src="${face(s.id)}" alt="${esc(s.name)}"><span class="stamp">GUILTY</span></div>
+    <h2>${esc(s.name)}</h2><p>The pianola played on. The nephew did not.</p><button class="btn primary">Read the case report <span class="arrow">→</span></button></div>`;
+  document.body.appendChild(ov);
+  const go = () => { ov.remove(); renderSolved(); window.scrollTo(0, 0); };
+  $("button", ov).addEventListener("click", go);
+  setTimeout(() => $("button", ov).focus(), reduced ? 0 : 2600);
+}
 function renderSolved(){
-  const s = sById(CULPRIT);
-  const correct = CLUES.filter(c => state.links[c.id] === c.truth).length;
-  const mins = Math.max(1, Math.round(((state.solvedAt || Date.now()) - state.startedAt) / 60000));
-  const rank = state.attempts === 0 && correct === 5 ? "Consulting Detective" : state.attempts <= 1 ? "Detective Inspector" : "Promising Constable";
-  main.innerHTML = `
-  <div class="solved fade">
-    <div class="eyebrow">Case No. 221B</div>
-    <div class="stamp">SOLVED</div>
+  main.className = "";
+  const s = S_BY[C.culprit];
+  const right = C.clues.filter(c => st.links[c.id] === c.truth).length;
+  const mins = Math.max(1, Math.round(((st.solvedAt || Date.now()) - st.startedAt) / 60000));
+  const sc = score(), rank = sc >= 90 ? "Consulting Detective" : sc >= 70 ? "Detective Inspector" : sc >= 40 ? "Detective Sergeant" : "Promising Constable";
+  main.innerHTML = `<div class="solved fadeup">
     <article class="report">
-      <div class="row"><span class="photo">${portrait(s)}</span>
-        <div><div class="eyebrow" style="color:var(--red)">Culprit</div><h2 style="margin:2px 0">${esc(s.name)}</h2><div style="color:var(--paper-mute)">${esc(s.role)}</div></div></div>
-      <p><b>The alibi:</b> Julian claimed he played piano in the drawing room all evening, and every guest heard music.</p>
-      <p><b>The flaw:</b> the receipt shows he bought a 30-minute player-piano roll that morning. The music started at 9:00 and stopped at 9:30, exactly the window of the theft. The piano played itself while Julian, who as family knew the safe combination, slipped into the study.</p>
-      <p><b>The motive:</b> a new will, to be signed on Monday, would have cut him out of the estate.</p>
-      <div class="score">
-        <div><b>${correct}/5</b><span>Clues placed right</span></div>
-        <div><b>${state.attempts}</b><span>False accusations</span></div>
-        <div><b>${mins} min</b><span>Time on case</span></div>
+      <div class="report-hero"><img src="${img(s.id + "-card")}" alt="${esc(s.name)}">
+        <div><span class="big-stamp">SOLVED</span><div class="eyebrow" style="color:var(--paper-mute)">Case ${C.number} · Culprit</div><h1 style="margin:6px 0">${esc(s.name)}</h1><div style="color:var(--paper-mute)">${esc(s.role)}</div></div></div>
+      <div class="report-body">
+        <p>Julian swore he played the piano from nine until half past, and every guest heard music. Nobody saw him. That morning he had bought a pianola roll that plays itself for exactly thirty minutes.</p>
+        <div class="chain">
+          <div><b>Opportunity</b><span>While the pianola played, he slipped through the hidden connecting door from the drawing room into the study.</span></div>
+          <div><b>Means</b><span>As family, he knew the safe's combination. No force, no damage, no witness in the hall.</span></div>
+          <div><b>Motive</b><span>A new will, to be signed on Monday, would have cut him out of the Ashworth estate.</span></div>
+        </div>
+        <div class="score"><div><b>${sc}</b><span>Score</span></div><div><b>${right}/5</b><span>Clues placed right</span></div><div><b>${st.facts.length}/${FACT_TOTAL}</b><span>Facts found</span></div><div><b>${mins}m</b><span>On the case</span></div></div>
+        <p class="rank">Rank awarded: ${rank}</p>
       </div>
-      <p style="text-align:center;margin:0">Rank awarded: <b>${rank}</b></p>
     </article>
-    <div class="center-actions">
-      <a class="btn" href="#/board">Back to the board</a>
-      <button class="btn primary" id="again">Reopen a fresh case</button>
-    </div>
+    <div class="center-actions"><a class="btn" href="#/board">Back to the board</a><button class="btn primary" id="again">Reopen a fresh case</button></div>
   </div>`;
-  $("#again").addEventListener("click", () => { state = fresh(); save(); pick = { s:null, c:null }; location.hash = "#/board"; route(); toast("New case opened."); });
+  $("#again").addEventListener("click", () => { st = fresh(); st.seenIntro = true; save(); location.hash = "#/board"; route(); toast("Fresh case file opened."); });
 }
 
 /* ---------------- router ---------------- */
+const main = $("#main");
+let current = "";
 function route(){
-  const h = location.hash.replace(/^#\/?/, "") || "board";
-  const [path, query] = h.split("?");
-  const [view, arg] = path.split("/");
-  selected = null; pointer = null;
-  if (view === "suspect"){ renderProfile(arg); updateChrome("suspect"); }
-  else if (view === "deduce"){ renderDeduce(new URLSearchParams(query || "").get("s")); updateChrome("deduce"); }
-  else { renderBoard(); updateChrome("board"); }
-  main.focus({ preventScroll:true });
-  if (view !== "deduce" || !query) window.scrollTo(0, 0);
+  const h = location.hash.replace(/^#\/?/, "");
+  const [view, arg] = h.split("/");
+  selected = null; pointer = null; closeDrawer();
+  if (!$("#modal").hidden){ $("#modal").hidden = true; }
+  if (!view) return st.seenIntro ? (location.hash = "#/board") : (renderIntro(), updateChrome("intro"));
+  if (view === "intro"){ renderIntro(); updateChrome("intro"); }
+  else if (view === "suspect"){ st.seenIntro = true; save(); renderDossier(arg); updateChrome("suspect"); }
+  else if (view === "deduce"){ st.seenIntro = true; save(); renderDeduce(); updateChrome("deduce"); }
+  else { st.seenIntro = true; save(); renderBoard(); updateChrome("board"); }
+  if (current !== h){ window.scrollTo(0, 0); main.focus({ preventScroll:true }); }
+  current = h;
+}
+function rerender(){
+  const v = document.body.dataset.view;
+  if (v === "board") renderBoard();
+  else if (v === "suspect") renderDossier(location.hash.split("/")[2]);
+  updateChrome();
 }
 window.addEventListener("hashchange", route);
-window.addEventListener("resize", () => requestAnimationFrame(drawStrings));
-document.addEventListener("keydown", e => { if (e.key === "Escape" && selected) select(null); });
+window.addEventListener("resize", () => requestAnimationFrame(() => drawStrings()));
+document.addEventListener("click", e => {
+  const o = e.target.closest("[data-open]"); if (!o) return;
+  ({ help, credits, brief:() => { location.hash = "#/intro"; } })[o.dataset.open]();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape"){ if (!$("#modal").hidden) return closeModal(); if ($("#drawer").classList.contains("open")) return closeDrawer(); if (selected) return select(null); }
+  if (e.target.matches("input,textarea") || e.metaKey || e.ctrlKey || e.altKey || !$("#modal").hidden) return;
+  if (e.key === "1") location.hash = "#/board";
+  else if (e.key === "2") location.hash = "#/suspect/" + (location.hash.split("/")[2] || "hayes");
+  else if (e.key === "3") location.hash = "#/deduce";
+  else if (e.key.toLowerCase() === "n") openDrawer();
+  else if (e.key === "?") help();
+});
 document.fonts && document.fonts.ready.then(() => drawStrings());
 route();
 })();
