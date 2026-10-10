@@ -1,0 +1,81 @@
+name: Fetch public-domain assets
+
+# Manually triggered helper: searches Wikimedia Commons, or downloads a chosen
+# list of files, resizes them with ImageMagick and commits them to assets/.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "search | fetch"
+        required: true
+        default: "search"
+      payload:
+        description: "JSON — search: [\"query\", ...]  fetch: [{title, out, w, h, gravity}]"
+        required: true
+        default: "[]"
+
+permissions:
+  contents: write
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run
+        env:
+          MODE: ${{ inputs.mode }}
+          PAYLOAD: ${{ inputs.payload }}
+        run: |
+          sudo apt-get install -y -qq imagemagick >/dev/null 2>&1 || true
+          cat > /tmp/assets.py <<'PY'
+          import json, os, sys, urllib.parse, urllib.request, subprocess, re
+          UA = {"User-Agent": "221b-case-room-asset-fetcher/1.0 (github.com/jaytech3/221b-case-room)"}
+          API = "https://commons.wikimedia.org/w/api.php"
+          def api(params):
+              params.update(format="json"); url = API + "?" + urllib.parse.urlencode(params)
+              return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60))
+          def meta(page):
+              ii = page.get("imageinfo", [{}])[0]; em = ii.get("extmetadata", {})
+              g = lambda k: re.sub("<[^>]+>", "", em.get(k, {}).get("value", "")).strip()
+              return dict(title=page["title"], w=ii.get("width"), h=ii.get("height"), url=ii.get("url"),
+                          thumb=ii.get("thumburl"), license=g("LicenseShortName"), artist=g("Artist")[:80],
+                          date=g("DateTimeOriginal")[:40], desc=g("ImageDescription")[:140])
+          mode, payload = os.environ["MODE"], json.loads(os.environ["PAYLOAD"])
+          if mode == "search":
+              for q in payload:
+                  print("\n=== " + q)
+                  r = api(dict(action="query", generator="search", gsrsearch=q, gsrnamespace=6, gsrlimit=12,
+                               prop="imageinfo", iiprop="url|size|extmetadata", iiurlwidth=640))
+                  for p in sorted(r.get("query", {}).get("pages", {}).values(), key=lambda p: p.get("index", 0)):
+                      m = meta(p)
+                      if not m["url"] or not re.search(r"\.(jpe?g|png|tiff?)$", m["url"], re.I): continue
+                      print(f'{m["title"]} | {m["w"]}x{m["h"]} | {m["license"]} | {m["artist"]} | {m["date"]} | {m["desc"]}')
+          else:
+              os.makedirs("assets", exist_ok=True)
+              credits = ["# Image credits\n", "All photographs are public-domain works sourced from Wikimedia Commons and lightly cropped, resized and toned for the board.\n"]
+              for item in payload:
+                  r = api(dict(action="query", titles=item["title"], prop="imageinfo", iiprop="url|size|extmetadata", iiurlwidth=item.get("src_w", 1800)))
+                  page = next(iter(r["query"]["pages"].values())); m = meta(page)
+                  src = m["thumb"] or m["url"]
+                  if not src: print("MISSING", item["title"]); continue
+                  tmp = "/tmp/src_" + re.sub(r"\W", "_", item["out"])
+                  urllib.request.urlretrieve(urllib.request.Request(src, headers=UA).full_url, tmp) if False else open(tmp, "wb").write(urllib.request.urlopen(urllib.request.Request(src, headers=UA), timeout=120).read())
+                  out = os.path.join("assets", item["out"]); os.makedirs(os.path.dirname(out), exist_ok=True)
+                  w, h, grav = item.get("w", 900), item.get("h", 1125), item.get("gravity", "north")
+                  cmd = ["convert", tmp + "[0]", "-auto-orient", "-strip", "-resize", f"{w}x{h}^", "-gravity", grav, "-extent", f"{w}x{h}", "-quality", "82", out]
+                  subprocess.run(cmd, check=True)
+                  size = os.path.getsize(out)
+                  print(f'OK {out} {size//1024}KB <- {m["title"]} ({m["license"]})')
+                  credits.append(f'- `{item["out"]}` — [{m["title"][5:]}](https://commons.wikimedia.org/wiki/{urllib.parse.quote(m["title"].replace(" ", "_"))}) · {m["artist"] or "unknown"} · {m["date"]} · {m["license"]}\n')
+              open("assets/CREDITS.md", "w").write("".join(credits))
+          PY
+          python3 /tmp/assets.py
+      - name: Commit
+        if: inputs.mode == 'fetch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets
+          git commit -m "Add public-domain photographs from Wikimedia Commons (see assets/CREDITS.md)" || echo "nothing to commit"
+          git push
