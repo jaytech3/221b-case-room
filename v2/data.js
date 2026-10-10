@@ -2,7 +2,7 @@
 window.CASE = {
   title: "The Blue Duchess",
   number: "221B / 1887",
-  summary: "A 42-carat Kashmir sapphire vanished from Lady Ashworth's study safe between 9:00 and 9:30 pm. No forced entry. Five guests, five alibis, five clues.",
+  summary: "A 42-carat Kashmir sapphire vanished from Lady Ashworth's study safe between 9:00 and 9:30 pm. No forced entry. Five guests, five alibis, eight pieces of evidence.",
   culprit: "julian",
   method: "door",
   proof: "roll",
@@ -31,7 +31,7 @@ window.CASE = {
     { id:"lang", name:"Mr. Victor Lang", short:"Lang", role:"Jeweller, Hatton Garden", age:47, relation:"Valued the sapphire last spring",
       room:"cab", motive:"A rival dealer offered a fortune for the stone",
       alibi:"I left the party at a quarter to nine. A hansom took me straight home to Hampstead.",
-      exonerate:["f_lang_cab","f_lang_dust"],
+      exonerate:["f_lang_cab","f_lang_dust","f_lang_ticket"],
       rebuttal:"Mr. Lang was in a hansom to Hampstead before the sapphire was last seen at 9:00. His loupe had lain under the desk for days.",
       questions:[
         { q:"When did you leave the house?", a:"A quarter to nine. The cabman, Doyle, drove me to Hampstead and my night porter let me in at twenty to ten. Both will swear to it.", fact:"f_lang_cab" },
@@ -41,7 +41,7 @@ window.CASE = {
     { id:"pell", name:"Dr. Arthur Pell", short:"Pell", role:"Family physician", age:54, relation:"Guest of the host",
       room:"conservatory", motive:"His medical practice is near bankrupt",
       alibi:"At ten past nine a guest fainted in the conservatory. I tended her until the alarm was raised.",
-      exonerate:["f_pell_patient","f_pell_mud"],
+      exonerate:["f_pell_patient","f_pell_mud","f_pell_watch"],
       rebuttal:"Dr. Pell knelt beside Mrs. Pryce from 9:10 in front of two witnesses. The conservatory soil in the study was dry and hours old.",
       questions:[
         { q:"Where were you during the theft?", a:"In the conservatory with Mrs. Pryce, who fainted at ten past nine. Her husband and I did not leave her side until the bell.", fact:"f_pell_patient" },
@@ -74,7 +74,16 @@ window.CASE = {
       detail:"The soil is dry and cracked right through. It was trodden in hours before the theft, not tonight.", fact:"f_pell_mud" },
     { id:"roll", no:"05", title:"Pianola roll receipt", img:"piano", where:"Coat in the cloakroom", truth:"julian",
       text:"A music shop receipt for a player-piano roll, found in a gentleman's coat.",
-      detail:"Stamped: 'Grand Medley, continuous play, 30 minutes.' Paid for at 10:15 this morning. The drawing room piano is a pianola: it plays itself.", fact:"f_roll_30" }
+      detail:"Stamped: 'Grand Medley, continuous play, 30 minutes.' Paid for at 10:15 this morning. The drawing room piano is a pianola: it plays itself.", fact:"f_roll_30" },
+    { id:"thread", no:"06", title:"Crimson silk thread", img:"latch", where:"Study side of the tapestry", truth:"julian",
+      text:"A strand of crimson silk snagged on an old iron latch hidden behind the study tapestry.",
+      detail:"The latch was oiled today and opens without a sound. The silk matches the crimson cravat worn by one guest tonight, and it is torn fresh.", fact:"f_thread" },
+    { id:"watch", no:"07", title:"Stopped pocket watch", img:"watch", where:"Hall table, outside the study", truth:"pell",
+      text:"A gentleman's watch with a cracked glass, stopped at 9:14, left beside the study door.",
+      detail:"Engraved 'A.P., from grateful patients'. Grit from the conservatory tiles is lodged in the crack. The footman picked it up in the conservatory doorway at 9:20 and set it here.", fact:"f_pell_watch" },
+    { id:"ticket", no:"08", title:"Hansom cab ticket", img:"cab", where:"Front steps", truth:"lang",
+      text:"A cab ticket, No. 4471, trodden into the mud by the front steps.",
+      detail:"Punched 8:47 pm, Ashworth House to Hampstead. The cab rank's book shows No. 4471 never came back before ten.", fact:"f_lang_ticket" }
   ],
 
   rooms: [
@@ -121,7 +130,10 @@ window.CASE = {
     f_julian_unseen:"Nobody actually saw Julian at the piano.",
     f_combo:"Only Lady Ashworth and Julian know the safe combination.",
     f_roll_30:"Julian's pianola roll plays itself for exactly 30 minutes.",
-    f_door:"A hidden connecting door joins the drawing room to the study."
+    f_door:"A hidden connecting door joins the drawing room to the study.",
+    f_thread:"Crimson silk from a cravat was torn on the hidden door's latch tonight.",
+    f_pell_watch:"Pell's watch broke on the conservatory tiles at 9:14.",
+    f_lang_ticket:"Lang's cab ticket was punched at 8:47 and the cab never returned."
   },
 
   methods: [
@@ -144,6 +156,8 @@ window.CASE = {
     ["Drawing room", "Interior Room (c. 1862), Viscountess Jocelyn. Public domain, via rawpixel.", "https://www.rawpixel.com/image/10044459/interior-room-c-1862-viscountess-jocelyn"],
     ["Billiard room", "The Billiard Room. Public domain, via rawpixel.", "https://www.rawpixel.com/image/9201887/the-billiard-room"],
     ["Conservatory", "Two young women, conservatory (1850s), Roger Fenton. Public domain, via rawpixel.", "https://www.rawpixel.com/image/9787093/two-young-women-conservatory-1850s-roger-fenton"],
-    ["Evidence photographs", "Cigar, open book, magnifying glass, soil, piano keys, pocket watch and sapphire. CC0, via rawpixel.", "https://www.rawpixel.com/category/53/public-domain"]
+    ["Evidence photographs", "Cigar, open book, magnifying glass, soil, piano keys, pocket watch and sapphire. CC0, via rawpixel.", "https://www.rawpixel.com/category/53/public-domain"],
+    ["Door latch", "Door Latch (c. 1939), Fritz Boehmer, Index of American Design, National Gallery of Art. Public domain, via rawpixel.", "https://www.rawpixel.com/image/3369677/free-illustration-image-antique-architecture-art"],
+    ["Hansom cab", "Whistler in a Hansom Cab, George du Maurier. Public domain, via rawpixel.", "https://www.rawpixel.com/image/8993358/whistler-hansom-cab-george-maurier"]
   ]
 };

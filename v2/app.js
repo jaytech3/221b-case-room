@@ -6,6 +6,7 @@ const S_BY = Object.fromEntries(C.suspects.map(s => [s.id, s]));
 const C_BY = Object.fromEntries(C.clues.map(c => [c.id, c]));
 const R_BY = Object.fromEntries(C.rooms.map(r => [r.id, r]));
 const FACT_TOTAL = Object.keys(C.facts).length;
+const NC = C.clues.length;
 const img = n => `img/${n}.webp`;
 const face = id => img(id + "-face");
 const $ = (s, el = document) => el.querySelector(s);
@@ -76,7 +77,7 @@ function link(cid, sid){
   const prev = st.links[cid]; st.links[cid] = sid; save();
   fresh_link = cid;
   toast(prev && prev !== sid ? `Clue ${C_BY[cid].no} moved to ${S_BY[sid].short}` : `Clue ${C_BY[cid].no} pinned to ${S_BY[sid].short}`);
-  if (linkCount() === 5 && !prev) setTimeout(() => toast("Every clue is on the board. Time for a deduction.", true), 900);
+  if (linkCount() === C.clues.length && !prev) setTimeout(() => toast("Every clue is on the board. Time for a deduction.", true), 900);
 }
 function unlink(cid){ delete st.links[cid]; save(); toast(`Clue ${C_BY[cid].no} unpinned`); }
 let fresh_link = null;
@@ -224,7 +225,7 @@ function renderIntro(){
           <a class="btn primary focus-me" href="#/board" id="enter">Open the case file <span class="arrow">→</span></a>
           <button class="btn ghost" data-open="help">How it works</button>
         </div>
-        <div class="intro-stats"><div><b>5</b><span>Suspects</span></div><div><b>5</b><span>Clues</span></div><div><b>${FACT_TOTAL}</b><span>Hidden facts</span></div><div><b>1</b><span>Thief</span></div></div>
+        <div class="intro-stats"><div><b>5</b><span>Suspects</span></div><div><b>${C.clues.length}</b><span>Clues</span></div><div><b>${FACT_TOTAL}</b><span>Hidden facts</span></div><div><b>1</b><span>Thief</span></div></div>
       </div>
       <article class="telegram" aria-label="Telegram from Inspector Lestrade">
         <div class="head"><span>POST OFFICE TELEGRAPHS</span><span>RECD 9:52 PM</span></div>
@@ -278,9 +279,9 @@ function stepsPanel(){
   const n = linkCount(), s = status();
   const steps = [
     { l:"Case opened", d:true },
-    { l:`Pin every clue (${n}/5)`, d:n === 5, now:n < 5 && s !== "solved" },
-    { l:`Test the alibis (${tested()}/5)`, d:tested() === 5, now:n === 5 && tested() < 5 && !st.solved },
-    { l:"Name the culprit", d:st.solved, now:n === 5 && tested() === 5 && !st.solved },
+    { l:`Pin every clue (${n}/${NC})`, d:n === NC, now:n < NC && s !== "solved" },
+    { l:`Test the alibis (${tested()}/5)`, d:tested() === 5, now:n === NC && tested() < 5 && !st.solved },
+    { l:"Name the culprit", d:st.solved, now:n === NC && tested() === 5 && !st.solved },
     { l:"Case solved", d:st.solved },
   ];
   return `<ol class="steps">${steps.map((x, i) => `<li class="${x.d ? "done" : ""} ${x.now ? "now" : ""}"><span class="dot">${x.d ? "✓" : i + 1}</span>${x.l}</li>`).join("")}</ol>`;
@@ -296,7 +297,7 @@ function renderBoard(){
         <p class="lede">Pin each clue to the suspect it points against. Examine evidence and test every alibi before you accuse.</p>
       </div>
       <div class="meters">
-        ${meter(linkCount(), 5, "Clues pinned")}${meter(st.examined.length, 5, "Examined")}${meter(st.facts.length, FACT_TOTAL, "Facts")}${meter(tested(), 5, "Alibis tested")}
+        ${meter(linkCount(), NC, "Clues pinned")}${meter(st.examined.length, NC, "Examined")}${meter(st.facts.length, FACT_TOTAL, "Facts")}${meter(tested(), 5, "Alibis tested")}
       </div>
     </div>
     <div class="layout">
@@ -310,7 +311,7 @@ function renderBoard(){
             <span class="nm">${esc(s.name)}</span><span class="rl">${esc(s.role)}</span>
             <span class="alibi-chip" data-a="${a}">${ALIBI[a]}</span>
           </button>`; }).join("")}</div>
-        <div class="zone"><span class="zone-label">The evidence</span><span class="zone-note">Found in the study</span></div>
+        <div class="zone"><span class="zone-label">The evidence</span><span class="zone-note">Gathered from the house</span></div>
         <div class="row clues">${C.clues.map(c => { const to = st.links[c.id], seen = st.examined.includes(c.id);
           return `<div class="clue ${to ? "linked" : ""} ${selected === c.id ? "selected" : ""}" draggable="true" data-cid="${c.id}" tabindex="0" role="button" aria-pressed="${selected === c.id}"
             aria-label="Clue ${c.no}, ${esc(c.title)}. ${to ? "Pinned to " + esc(S_BY[to].short) : "Not pinned"}. Press Enter to select, then choose a suspect.">
@@ -505,7 +506,7 @@ function renderDeduce(){
         <h2>Your accusation</h2>
         <div class="sentence">${sentence}</div>
         <button class="btn danger" id="accuse" ${done.every(Boolean) ? "" : "disabled"}>Make the accusation</button>
-        <small>${linkCount() < 5 || tested() < 5 ? `You've pinned ${linkCount()}/5 clues and tested ${tested()}/5 alibis. Finishing the board first helps.` : "Your board is complete. Trust your reasoning."}</small>
+        <small>${linkCount() < NC || tested() < 5 ? `You've pinned ${linkCount()}/${NC} clues and tested ${tested()}/5 alibis. Finishing the board first helps.` : "Your board is complete. Trust your reasoning."}</small>
         ${lastResult ? `<div class="result ${lastResult.cls}">${lastResult.html}</div>` : ""}
         <div class="score-line"><span>Score ${score()}</span><span>False accusations ${st.attempts} · Hints ${st.hints}</span></div>
       </aside>
@@ -528,6 +529,7 @@ function accuse(){
   st.attempts++; save();
   if (p.s !== C.culprit) lastResult = { cls:"bad", html:`<b>The accusation collapses.</b> ${esc(S_BY[p.s].rebuttal)} <br><br>−15 points.` };
   else if (p.m !== C.method) lastResult = { cls:"warn", html:`<b>Right suspect, wrong route.</b> ${esc(C.methods.find(m => m.id === p.m).rebut)} −15 points.` };
+  else if (p.c === "thread") lastResult = { cls:"warn", html:`<b>Close.</b> The silk puts Julian at the hidden door, but it doesn't break his alibi. Why did every guest believe he was at the piano? −15 points.` };
   else lastResult = { cls:"warn", html:`<b>The Yard won't charge on that.</b> "${esc(C_BY[p.c].title)}" doesn't break Julian's alibi. What made it look like he was at the piano? −15 points.` };
   log("fact", "False accusation", lastResult.html.replace(/<[^>]+>/g, ""));
   updateChrome(); renderDeduce();
@@ -556,11 +558,11 @@ function renderSolved(){
       <div class="report-body">
         <p>Julian swore he played the piano from nine until half past, and every guest heard music. Nobody saw him. That morning he had bought a pianola roll that plays itself for exactly thirty minutes.</p>
         <div class="chain">
-          <div><b>Opportunity</b><span>While the pianola played, he slipped through the hidden connecting door from the drawing room into the study.</span></div>
+          <div><b>Opportunity</b><span>While the pianola played, he slipped through the hidden connecting door, tearing his silk cravat on its freshly oiled latch.</span></div>
           <div><b>Means</b><span>As family, he knew the safe's combination. No force, no damage, no witness in the hall.</span></div>
           <div><b>Motive</b><span>A new will, to be signed on Monday, would have cut him out of the Ashworth estate.</span></div>
         </div>
-        <div class="score"><div><b>${sc}</b><span>Score</span></div><div><b>${right}/5</b><span>Clues placed right</span></div><div><b>${st.facts.length}/${FACT_TOTAL}</b><span>Facts found</span></div><div><b>${mins}m</b><span>On the case</span></div></div>
+        <div class="score"><div><b>${sc}</b><span>Score</span></div><div><b>${right}/${NC}</b><span>Clues placed right</span></div><div><b>${st.facts.length}/${FACT_TOTAL}</b><span>Facts found</span></div><div><b>${mins}m</b><span>On the case</span></div></div>
         <p class="rank">Rank awarded: ${rank}</p>
       </div>
     </article>
