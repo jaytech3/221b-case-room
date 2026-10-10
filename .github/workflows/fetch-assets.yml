@@ -78,6 +78,14 @@ jobs:
                               ims = d.get("image_url") or []
                               if not ims: continue
                               p(f'loc | {d.get("title","")[:70]} | {", ".join(d.get("contributor") or [])[:40]} | {d.get("date","")} | {", ".join(d.get("original_format") or [])[:30]} | {ims[-1]} | {d.get("id","")} | rights: {(d.get("rights") or "")[:60] if isinstance(d.get("rights"), str) else ""}')
+                      elif src == "wm":
+                          # Wikimedia API gateway (separate rate limits from the classic api.php)
+                          u = "https://api.wikimedia.org/core/v1/commons/search/page?" + urllib.parse.urlencode({"q": q, "limit": 14})
+                          for d in json.loads(get(u)).get("pages", []):
+                              th = (d.get("thumbnail") or {}).get("url", "")
+                              if not re.search(r"\.(jpe?g|png)$", d.get("key", ""), re.I): continue
+                              p(f'wm | {d["key"]} | {(d.get("description") or "")[:80]} | https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(d["key"][5:])}?width=1800 | https:{th if th.startswith("//") else th}')
+                          time.sleep(1.5)
                       else:
                           raw = get(API + "?" + urllib.parse.urlencode(dict(action="query", generator="search", gsrsearch=q, gsrnamespace=6, gsrlimit=12, prop="imageinfo", iiprop="url|size|extmetadata", iiurlwidth=640, format="json")))
                           r = json.loads(raw)
