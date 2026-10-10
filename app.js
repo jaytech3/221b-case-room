@@ -18,7 +18,10 @@
   const defaultPositions = () => {
     const pos = {};
     C.suspects.forEach((s, i) => { pos[s.id] = { x: 70 + i * 228, y: 60, rot: [-2.5, 1.5, -1, 2, -1.8][i] }; });
-    C.clues.forEach((c, i) => { pos[c.id] = { x: 40 + i * 240, y: [470, 520, 460, 530, 480][i], rot: [1.5, -2, 2.5, -1, 1][i] }; });
+    C.clues.forEach((c, i) => {
+      const row = i < 4 ? 0 : 1, col = row ? i - 4 : i;
+      pos[c.id] = { x: (row ? 190 : 40) + col * 300, y: row ? 640 : [410, 445, 400, 450][col], rot: [1.5, -2, 2.5, -1, 1, -1.5, 2][i % 7] };
+    });
     return pos;
   };
   const fresh = () => ({
@@ -28,6 +31,7 @@
   });
   let S = fresh();
   try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
+  { const d = defaultPositions(); for (const k in d) if (!S.pos[k]) S.pos[k] = d[k]; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
   /* ── Sound (tiny WebAudio foley) ─────────────────────────── */

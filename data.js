@@ -237,6 +237,28 @@ window.CASE = {
         "The other hangs on the housekeeper's chatelaine — and, by her own admission, was out of her keeping for ten minutes that afternoon.",
       suggests: "The case was not forced. Whoever opened it had a key — or a copy of one.",
       answer: "finch"
+    },
+    {
+      id: "c6",
+      exhibit: "F",
+      title: "Beeswax in the lock",
+      summary: "A film of wax inside the Chubb lock. A cold stub of candle in the library wastepaper basket.",
+      detail:
+        "A thin film of beeswax inside the levers of the display case lock, and the cold stub of a candle in the wastepaper basket of the library. " +
+        "Pressed into warm wax, a key gives up its shape in under a minute — and a copy can be cut in an afternoon.",
+      suggests: "Someone copied a key. Who held one long enough to press it — and had the trade to use the impression?",
+      answer: "marlowe"
+    },
+    {
+      id: "c7",
+      exhibit: "G",
+      title: "The whist score sheet",
+      summary: "Colonel Hargreaves's tally: four hands between half past ten and eleven, each initialled by all four players.",
+      detail:
+        "The Colonel's score sheet from the smoking room. Four hands dealt between half past ten and eleven o'clock, the stakes rising with each. " +
+        "Every hand is initialled by all four players — the last of them, P. A., in a hand that wavers as if written by candlelight.",
+      suggests: "A record kept minute by minute. It accuses one man of losing money — but of nothing else.",
+      answer: "percival"
     }
   ]
 };
